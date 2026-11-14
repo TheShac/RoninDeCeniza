@@ -21,9 +21,9 @@ class Animator:
         self.name = start
         self.time = 0.0
 
-    def play(self, name):
-        """Cambia de animación. No reinicia si ya es la que se está reproduciendo."""
-        if name != self.name and name in self.animations:
+    def play(self, name, restart=False):
+        """Cambia de animación. No reinicia si ya es la que se reproduce, salvo que `restart` sea True."""
+        if name in self.animations and (name != self.name or restart):
             self.name = name
             self.time = 0.0
 
@@ -49,23 +49,35 @@ def load_strip(path, frame_w, frame_h):
     return [image.subsurface((i * frame_w, 0, frame_w, frame_h)).copy() for i in range(count)]
 
 
-# nombre de la animación: (cuadros por segundo, cíclica)
+# Animaciones del Ronin. Cíclicas: fps fijo. De acción: duración en segundos (el fps se calcula
+# como cuadros / duración, así la animación dura exactamente lo mismo que la acción).
 RONIN_ANIMATIONS = {
-    "idle": (5, True),
-    "run": (12, True),
-    "jump": (1, False),
-    "fall": (1, False),
+    "idle": dict(fps=5, loop=True),
+    "run": dict(fps=12, loop=True),
+    "crouch": dict(fps=3, loop=True),
+    "crouch_walk": dict(fps=8, loop=True),
+    "jump": dict(fps=1, loop=False),
+    "fall": dict(fps=1, loop=False),
+    "attack": dict(duration=S.ACTION_TIME["attack"]),
+    "parry": dict(duration=S.ACTION_TIME["parry"]),
+    "throw": dict(duration=S.ACTION_TIME["throw"]),
+    "dash": dict(duration=S.ACTION_TIME["dash"]),
+    "hurt": dict(duration=S.ACTION_TIME["hurt"]),
+    "death": dict(duration=S.ACTION_TIME["death"]),
 }
 
 
 def load_ronin_animations():
     """Carga las hojas del Ronin. Devuelve None si faltan (el juego usa un dibujo provisional)."""
     try:
-        return {
-            name: Animation(load_strip(S.SPRITES_DIR / "ronin" / f"{name}.png", S.SPRITE_FRAME, S.SPRITE_FRAME),
-                            fps, loop)
-            for name, (fps, loop) in RONIN_ANIMATIONS.items()
-        }
+        animations = {}
+        for name, spec in RONIN_ANIMATIONS.items():
+            frames = load_strip(S.SPRITES_DIR / "ronin" / f"{name}.png", S.SPRITE_FRAME, S.SPRITE_FRAME)
+            if "duration" in spec:
+                animations[name] = Animation(frames, len(frames) / spec["duration"], loop=False)
+            else:
+                animations[name] = Animation(frames, spec["fps"], spec["loop"])
+        return animations
     except (FileNotFoundError, pygame.error) as error:
         print(f"Aviso: no se pudieron cargar los sprites del Ronin ({error}).")
         return None

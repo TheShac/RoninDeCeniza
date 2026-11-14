@@ -33,5 +33,25 @@ COYOTE_TIME = 0.10        # s de gracia para saltar justo después de dejar el b
 JUMP_BUFFER = 0.12        # s en que se recuerda un salto pedido un poco antes de aterrizar
 
 PLAYER_SIZE = (24, 58)   # hitbox (ancho, alto); el dibujo es un poco más ancho que la hitbox
-SPRITE_FRAME = 64        # tamaño de cada cuadro de animación
-SPRITE_FEET_Y = 62       # fila del cuadro donde apoyan los pies
+SPRITE_FRAME = 96        # tamaño de cada cuadro de animación
+SPRITE_FEET_Y = 90       # fila del cuadro donde apoyan los pies
+
+PLAYER_CROUCH_H = 40      # alto de la hitbox al agacharse (el ancho no cambia)
+CROUCH_SPEED_MULT = 0.4   # agachado se camina más lento
+ACTION_SPEED_MULT = 0.5   # mientras ataca, desvía o lanza, se camina a la mitad
+
+# --- Acciones del Ronin (duración en segundos; coinciden con la animación) ---
+ACTION_TIME = {"attack": 0.30, "parry": 0.35, "throw": 0.30, "dash": 0.15, "hurt": 0.40, "death": 0.80}
+DASH_SPEED = 650.0        # px/s durante el dash
+DASH_COOLDOWN = 1.0       # s entre dashes
+HURT_KNOCKBACK = (200.0, -280.0)   # impulso al recibir un golpe (hacia atrás y arriba)
+
+# --- Shuriken (tiro parabólico + rotación) ---
+SHURIKEN_SPEED = 700.0       # px/s horizontal
+SHURIKEN_LIFT = -60.0        # px/s vertical inicial (sale levemente hacia arriba)
+SHURIKEN_GRAVITY = 600.0     # px/s^2 (mucho menor que la del jugador)
+SHURIKEN_SPIN = 720.0        # grados/s
+SHURIKEN_RADIUS = 9
+SHURIKEN_LIFETIME = 2.0      # s
+THROW_RELEASE = 0.15         # s desde que empieza el lanzamiento hasta que la estrella sale de la mano
+SHURIKEN_HAND = (22, -26)    # posición de salida respecto a los pies (x hacia donde mira, y hacia arriba)

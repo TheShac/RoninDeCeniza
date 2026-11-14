@@ -12,7 +12,7 @@ tiempo de reacción (desvío), el posicionamiento (dash y saltos) y la puntería
 |---|---|
 | Vida | 5 corazones |
 | Munición de shuriken | 10 (se recogen más en los niveles) |
-| Hitbox | 24 x 58 px (36 px de alto al agacharse) |
+| Hitbox | 24 x 58 px (40 px de alto al agacharse) |
 | Daño del tajo | 1 |
 
 ## Movimiento (implementado)
@@ -38,7 +38,7 @@ Cálculos de referencia:
 
 ## Habilidades
 
-Estado: implementadas solo las de movimiento. El resto está en el plan de trabajo.
+Estado: implementados el movimiento, agacharse, el dash y el shuriken (con su trayectoria). El tajo y el desvío ya tienen su animación y su duración, y falta su efecto en el juego (daño y reflexión de proyectiles), que se agrega junto con los enemigos.
 
 ### Tajo (clic izquierdo)
 - La katana barre un arco de 120° centrado en la dirección del mouse.
@@ -54,7 +54,9 @@ Estado: implementadas solo las de movimiento. El resto está en el plan de traba
 - Los proyectiles devueltos dañan a los enemigos y son la única forma de herir seriamente al Samurái Caído.
 - Física: álgebra de vectores (producto punto, normalización, reflexión).
 
-### Shuriken (mantener E y soltar)
+### Shuriken (E)
+- **Versión actual:** al pulsar E sale en línea recta hacia donde mira el Ronin (con una leve subida inicial de 60 px/s) y cae por gravedad (600 px/s²). Aún sin munición, sin apuntar con el mouse y sin daño.
+- **Versión planificada** (lo que sigue es el diseño completo):
 - Al mantener la tecla se dibuja la trayectoria punteada hacia el mouse; al soltar, se lanza.
 - Velocidad de lanzamiento 700 px/s. Gira a 720°/s.
 - Trayectoria: `x = x0 + vx t`, `y = y0 + vy t + ½ g t²`. La vista previa muestrea la misma fórmula.
@@ -67,7 +69,7 @@ Estado: implementadas solo las de movimiento. El resto está en el plan de traba
 - Física: momentum, inercia y fricción.
 
 ### Agacharse (S)
-- Reduce la hitbox de 58 a 36 px de alto. Permite pasar bajo proyectiles altos y bajo obstáculos bajos.
+- Reduce la hitbox de 58 a 40 px de alto (los pies no se mueven) y la velocidad al 40 %. Solo se levanta si hay espacio sobre la cabeza. Permite pasar bajo proyectiles altos y bajo obstáculos bajos.
 
 ### Daño y vida
 - Cada golpe quita 1 corazón y empuja al jugador (knockback) en dirección opuesta al atacante.
@@ -76,37 +78,57 @@ Estado: implementadas solo las de movimiento. El resto está en el plan de traba
 
 ## Diseño visual y animaciones
 
-**Concepto.** Silueta de samurái errante en estilo tinta sobre papel: kimono negro, sombrero cónico (kasa),
-katana al cinto y una **bufanda roja** que es el único acento de color del personaje y ondea según el movimiento.
-La paleta (negro tinta, rojo, tonos de gris) es la misma del resto del juego.
+**Concepto.** Un ronin errante de rostro cubierto, con la esencia de los samuráis sombríos de las imágenes de
+referencia (no se copia ninguna obra, es un diseño propio):
+- Sombrero de paja cónico (kasa) con trama y moño, que oculta la mirada
+- Rostro cubierto por una máscara de tela, con solo una rendija para los ojos
+- Capa y falda raídas, con bordes desgarrados que ondean con el viento y la velocidad
+- **Bufanda roja larga** y **cinto de cuerda roja**: son los únicos acentos de color
+- Hombreras, pectoral de láminas y antebrazos protegidos
+- Dos katanas envainadas en la cadera y una tercera que desenvaina para atacar y desviar
+
+La paleta es negro tinta, grises, paja ocre, rojo y acero, coherente con el estilo de tinta sobre papel del juego.
 
 ![Animaciones del Ronin](img/ronin_animaciones.png)
 
-| Animación | Cuadros | Velocidad | Cuándo se usa |
-|---|---|---|---|
-| `idle` | 4 | 5 cuadros/s | Quieto en el suelo (respira y la bufanda se mueve) |
-| `run` | 6 | 12 cuadros/s, escalada por la velocidad real | Se mueve en el suelo |
-| `jump` | 1 | | En el aire subiendo (`vel.y < 0`) |
-| `fall` | 1 | | En el aire bajando |
-| Agacharse, tajo, desvío, dash, daño y muerte | | | Pendientes: se dibujan cuando se implemente cada habilidad |
+| Animación | Cuadros | Duración / velocidad | Cuándo se usa | En el juego |
+|---|---|---|---|---|
+| `idle` | 4 | 5 cuadros/s | Quieto en el suelo (respira, ondea la capa) | Sí |
+| `run` | 6 | 12 cuadros/s, escalada por la velocidad real | Se mueve en el suelo | Sí |
+| `jump` | 1 | | En el aire subiendo (`vel.y < 0`) | Sí |
+| `fall` | 1 | | En el aire bajando | Sí |
+| `crouch` | 2 | 3 cuadros/s | Agachado y quieto (S) | Sí |
+| `crouch_walk` | 6 | 8 cuadros/s, escalada por la velocidad real | Agachado y avanzando (S + A/D), al 40 % de la velocidad | Sí |
+| `dash` | 2 | 0,15 s | Shift | Sí, con movimiento real |
+| `attack` | 6 | 0,30 s | Clic izquierdo o J | Solo animación (falta el daño) |
+| `parry` | 4 | 0,35 s | Clic derecho o K | Solo animación (falta la reflexión) |
+| `throw` | 4 | 0,30 s | E | Sí: la estrella sale en el cuadro 3 (a los 0,15 s) |
+| `hurt` | 2 | 0,40 s | Recibir un golpe (F2 en modo debug) | Sí, con knockback |
+| `death` | 5 | 0,80 s | Quedarse sin vida (F3 en modo debug) | Sí |
+
+Las animaciones de acción duran exactamente lo mismo que la acción (`ACTION_TIME` en `settings.py`):
+la velocidad de cuadros se calcula como `cuadros / duración`.
 
 **Cómo se hicieron.** El script `tools/generar_sprites_ronin.py` dibuja al personaje como un esqueleto de
 segmentos. Cada extremidad se define con ángulos y la posición de cada articulación se calcula como
 `punto_siguiente = punto + longitud * (sen(ángulo), cos(ángulo))` (cinemática directa). Cada cuadro de la
-animación es una pose (un conjunto de ángulos), y el ciclo de carrera es una función seno de la fase.
-Esto se puede explicar en el informe como aplicación de **trigonometría y movimiento rotacional**.
+animación es una pose (un conjunto de ángulos). El ciclo de carrera usa funciones seno de la fase, el tajo
+barre el sable por un arco y la muerte rota todo el dibujo alrededor de los pies. Esto se puede explicar en el
+informe como aplicación de **trigonometría y movimiento rotacional**.
 
 **Cómo se usan en el juego.**
-- Cada animación es una tira horizontal de cuadros de 64 x 64 px en `assets/images/ronin/`.
-- `Animator` (en `src/animation.py`) elige el cuadro con `índice = int(tiempo * fps)`; así la animación depende
-  del tiempo y no de los fps de la pantalla.
-- `Player.state` decide la animación según la física: en el suelo con velocidad alta es `run`, en el aire
-  subiendo es `jump` y bajando es `fall`.
+- Cada animación es una tira horizontal de cuadros de 96 x 96 px en `assets/images/ronin/`.
+- `Animator` (`src/animation.py`) elige el cuadro con `índice = int(tiempo * fps)`; así la animación depende
+  del tiempo y no de los fps de la pantalla. Al empezar una acción se reinicia (`restart=True`).
+- `Player.state` decide la animación: primero la acción activa, luego agachado, luego aire (subiendo o bajando),
+  luego correr o reposo.
 - Los sprites miran a la derecha y se voltean al mirar a la izquierda.
 - Los pies del dibujo se alinean con el borde inferior de la hitbox. En el modo debug (F1) se ve la hitbox sobre el sprite.
 
+**Ver las animaciones sin jugar:** `python tools/ver_animaciones.py` abre una galería con todas en bucle.
+
 **Cambiar el arte.** Para usar dibujos propios basta reemplazar los PNG por tiras con el mismo nombre y cuadros
-de 64 x 64 px. Para regenerar los actuales: `pip install -r requirements-dev.txt` y
+de 96 x 96 px, con los pies en la fila 90. Para regenerar los actuales: `pip install -r requirements-dev.txt` y
 `python tools/generar_sprites_ronin.py --preview`. Pillow solo hace falta para regenerarlos, no para jugar.
 
 ## Controles
@@ -147,11 +169,11 @@ Quieto <-> Corriendo
 |---|---|
 | Caminar, frenar, gravedad, salto variable, coyote time, jump buffer | Hecho |
 | Colisiones con el mapa y caída al vacío | Hecho |
-| Diseño visual y animaciones idle, run, jump y fall | Hecho |
-| Animaciones de agacharse, tajo, desvío, dash, daño y muerte | Pendiente |
-| Agacharse | Pendiente |
-| Tajo | Pendiente |
-| Desvío | Pendiente |
-| Shuriken | Pendiente |
-| Dash | Pendiente |
-| Vida, knockback e invulnerabilidad | Pendiente |
+| Agacharse y avanzar agachado (hitbox reducida, velocidad al 40 % y animación propia) | Hecho |
+| Dash (impulso, inercia, recarga de 1 s e invulnerabilidad) | Hecho |
+| Diseño visual y las 12 animaciones | Hecho |
+| Recibir daño y morir (animación y knockback) | Hecho; falta conectarlo a los enemigos |
+| Tajo | Animación y duración hechas; falta el arco de daño |
+| Desvío | Animación y duración hechas; falta la reflexión de proyectiles |
+| Shuriken | Hecho: sale de la mano a los 0,15 s, 700 px/s, tiro parabólico, gira a 720°/s y se clava en el mapa; falta que dañe enemigos |
+| Vida en corazones y checkpoints | Pendiente |

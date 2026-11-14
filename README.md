@@ -33,7 +33,7 @@ El ronin, un samurái sin señor que lleva años vagando por los caminos, regres
 - Cuatro tipos de enemigos con comportamientos distintos, más dos jefes
 - Dos niveles con mecánicas de terreno propias (suelo helado, plataformas en movimiento, sierras)
 - Niveles definidos en archivos de texto: agregar uno nuevo no requiere modificar el código
-- Protagonista animado (reposo, carrera, salto y caída) generado con un esqueleto de ángulos
+- Protagonista con 12 animaciones (movimiento, agacharse, dash, tajo, desvío, lanzamiento, daño y muerte) generadas con un esqueleto de ángulos
 - Modo debug para visualizar la física en tiempo real
 
 ## Niveles
@@ -49,15 +49,14 @@ El ronin, un samurái sin señor que lleva años vagando por los caminos, regres
 | ---------------------------------- | ---------------------------------- |
 | `A` / `D` o flechas            | Mover                              |
 | `W`, `Espacio` o flecha arriba | Saltar (mantener para más altura) |
-| `S`                              | Agacharse                          |
-| Mouse                              | Apuntar                            |
-| Clic izquierdo                     | Tajo                               |
-| Clic derecho                       | Desvío                            |
-| `E` (mantener y soltar)          | Lanzar shuriken                    |
+| `S` (mantener)                   | Agacharse; si además se mueve, avanza agachado (más lento) |
+| Clic izquierdo o `J`             | Tajo (solo animación por ahora)  |
+| Clic derecho o `K`               | Desvío (solo animación por ahora) |
+| `E`                              | Lanzar shuriken |
 | `Shift`                          | Dash                               |
-| `Esc` / `P`                    | Pausa                              |
+| `Esc`                            | Salir (la pausa vendrá con los menús) |
 | `R`                              | Reiniciar nivel                    |
-| `F1`                             | Modo debug                         |
+| `F1`                             | Modo debug (con él: `F2` daño, `F3` muerte) |
 
 ## Conceptos de física y matemáticas aplicados
 
@@ -66,8 +65,8 @@ El ronin, un samurái sin señor que lleva años vagando por los caminos, regres
 | Leyes de movimiento   | Gravedad, salto, aceleración, fricción e inercia (`player.py`, `physics.py`)        | Implementado |
 | Colisiones            | Cajas AABB resueltas por eje con subpasos (`physics.py`)                                | Implementado |
 | Álgebra de vectores  | `Vector2` para posición y velocidad; normalización, reflexión del desvío, knockback | En curso     |
-| Movimiento rotacional | Arco del tajo, shuriken giratorio, sierras                                                | Pendiente    |
-| Tiro parabólico      | Shuriken y rocas del Oni                                                                  | Pendiente    |
+| Movimiento rotacional | Arco del tajo, shuriken giratorio, sierras                                                | En curso (shuriken hecho) |
+| Tiro parabólico      | Shuriken y rocas del Oni                                                                  | En curso (shuriken hecho) |
 | Perspectiva           | Parallax de fondo en varias capas                                                         | Pendiente    |
 
 ## Tecnologías
@@ -112,7 +111,7 @@ tiempo de gracia del salto (coyote time).
 RoninDeCeniza/
   src/          código fuente (main, game, player, animation, level, camera, physics, settings)
   tests/        pruebas de la física y de las animaciones
-  tools/        herramientas (generador de sprites del Ronin)
+  tools/        generador de sprites del Ronin y galería de animaciones
   levels/       mapas de los niveles (.txt)
   assets/
     images/     sprites y fondos
@@ -133,7 +132,9 @@ RoninDeCeniza/
 - [X] Estructura del proyecto, bucle principal con delta time y modo debug
 - [X] Jugador: movimiento, gravedad, salto variable y colisiones
 - [X] Carga de niveles desde archivos de texto y cámara con seguimiento
-- [X] Diseño del Ronin y animaciones de reposo, carrera, salto y caída
+- [X] Diseño del Ronin y sus 12 animaciones
+- [X] Agacharse, avanzar agachado y dash
+- [X] Shuriken (trayectoria parabólica y rotación)
 - [ ] Tajo, zombi caminante, vida y knockback
 - [ ] Proyectiles, arquero, desvío y shuriken
 - [ ] Nivel 1 completo con parallax y primer jefe
