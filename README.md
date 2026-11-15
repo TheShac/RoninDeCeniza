@@ -143,7 +143,7 @@ tiempo de gracia del salto (coyote time).
 
 ```
 RoninDeCeniza/
-  src/          código fuente (main, game, config, controls, player, enemy, combat, projectile, animation, level, camera, physics, settings)
+  src/          código fuente (main, game, config, controls, player, enemy, hazard, combat, projectile, animation, level, camera, physics, settings)
   tests/        pruebas de la física, las animaciones, el combate y los enemigos
   tools/        generadores de sprites (Ronin y zombis) y galería de animaciones
   levels/       mapas de los niveles (.txt)
@@ -173,6 +173,7 @@ RoninDeCeniza/
 - [X] Zombi corredor (campesino y ashigaru) con embestida acelerada y aturdimiento
 - [X] Flechas, zombi arquero (cazador y kyudoka), desvío con reflexión de vectores y shuriken
 - [X] Zombi hinchado (luchador de sumo): se infla y explota con impulso radial y reacción en cadena
+- [X] Sierras giratorias (fijas y con riel): movimiento rotacional y colisión círculo contra caja
 - [ ] Nivel 1 completo con parallax y primer jefe
 - [ ] Dash, menús y estados del juego, sonido
 - [ ] Nivel 2 y segundo jefe

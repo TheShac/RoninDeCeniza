@@ -6,7 +6,8 @@ import pygame
 import settings as S
 from animation import Animator, ENEMY_VARIANTS, load_ronin_animations, load_enemy_animations
 from camera import Camera
-from combat import apply_blast, resolve_combat
+from combat import apply_blast, resolve_combat, resolve_hazards
+from hazard import Saw
 from config import fit, load_config, to_logical, window_size
 from controls import jump_pressed, keyboard_aim, mouse_aim
 from enemy import ENEMY_CLASSES
@@ -97,6 +98,7 @@ class Game:
         self.projectiles = []
         self.sparks = []                      # chispas del desvío: (x, y, tiempo restante)
         self.rings = []                       # anillos de explosión: (x, y, radio, tiempo restante)
+        self.saws = [Saw(cx, cy, r, (dx, dy), v) for cx, cy, r, dx, dy, v in self.level.saw_specs]
         self.death_timer = 0.0
         self.enemies = [ENEMY_CLASSES[k](v, x, y, self.enemy_animations.get((k, v))) for k, v, x, y in self.level.enemy_spawns]
         if self.ronin_animations:
@@ -195,7 +197,10 @@ class Game:
         self.player.new_projectiles.clear()
         for shot in self.projectiles:
             shot.update(dt, self.level)
+        for saw in self.saws:
+            saw.update(dt)
         events = resolve_combat(self.player, self.enemies, self.projectiles)
+        events += resolve_hazards(self.player, self.saws)
         self.sparks = [(x, y, t - dt) for x, y, t in self.sparks if t - dt > 0]
         self.sparks += [(pos[0], pos[1], 0.15) for kind, pos in events if kind == "spark"]
         for enemy in self.enemies:
@@ -220,6 +225,8 @@ class Game:
     def draw(self):
         self.screen.fill(S.PAPER)
         self.level.draw(self.screen, self.camera)
+        for saw in self.saws:
+            saw.draw(self.screen, self.camera, self.debug)
         for enemy in self.enemies:
             enemy.draw(self.screen, self.camera)
         self.player.draw(self.screen, self.camera)
@@ -280,6 +287,9 @@ class Game:
             ox, oy = p.slash_origin
             pygame.draw.line(self.screen, S.GREEN, (ox - cam.x, oy - cam.y),
                              (ox - cam.x + p.parry_aim[0] * 80, oy - cam.y + p.parry_aim[1] * 80), 2)
+        for saw in self.saws:                        # movimiento rotacional: omega y velocidad tangencial v = omega * r
+            self.draw_text(f"w={saw.omega:.0f} rad/s  v={saw.tangential_speed:.0f} px/s",
+                           int(saw.pos.x - cam.x) - 50, int(saw.pos.y - cam.y) - saw.radius - 16, S.RED)
         for e in self.enemies:                       # hitbox y estado de cada enemigo
             ex, ey, ew, eh = e.rect
             pygame.draw.rect(self.screen, S.RED, (int(ex - cam.x), int(ey - cam.y), ew, eh), 1)

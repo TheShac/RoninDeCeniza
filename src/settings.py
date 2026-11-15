@@ -18,6 +18,7 @@ INK = (24, 24, 28)
 RED = (190, 40, 40)
 GREY = (120, 120, 126)
 GREEN = (40, 150, 70)
+STEEL = (150, 154, 166)
 
 # --- Física del jugador ---
 GRAVITY = 2200.0          # px/s^2 (se puede cambiar por nivel)
@@ -117,6 +118,14 @@ BLAST_LIFT = 0.6             # componente hacia arriba que se suma a la direcci�
 BLAST_PLAYER_DAMAGE = 2      # corazones que quita al Ronin
 BLAST_ENEMY_DAMAGE = 3       # daño a otros zombis (mata a todos, incluso a otro hinchado: reacción en cadena)
 BLAST_RING_TIME = 0.35       # s que dura el anillo visual
+
+# --- Sierras giratorias (peligro del escenario) ---
+SAW_RADIUS = 26.0            # px del dibujo (cabe en una casilla de 32 px con los dientes)
+SAW_HIT_SCALE = 0.88         # la zona de golpe es un 88 % del radio dibujado: perdona un poco los dientes
+SAW_OMEGA = 18.0             # rad/s (unas 2,9 vueltas por segundo)
+SAW_TEETH = 12
+SAW_PATH_SPEED = 90.0        # px/s por defecto cuando va y viene por un riel
+SAW_DAMAGE = 1               # corazones por contacto
 
 # --- Desvío (parry) ---
 PARRY_WINDOW = (0.05, 0.25)  # s del desvío durante los que la hoja devuelve proyectiles

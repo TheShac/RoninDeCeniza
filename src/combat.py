@@ -73,6 +73,19 @@ def apply_blast(blast, player, enemies):
             enemy.vel.y += push[1]
 
 
+def resolve_hazards(player, saws):
+    """Peligros del escenario contra el Ronin: cada sierra que lo toca le quita SAW_DAMAGE corazones.
+
+    Respeta la invulnerabilidad (dash, golpe reciente) igual que cualquier ataque. Devuelve eventos visuales."""
+    events = []
+    if player.dead:
+        return events
+    for saw in saws:
+        if saw.hits_rect(player.rect) and player.take_damage(saw.pos.x, S.SAW_DAMAGE):
+            events.append(("spark", saw.contact_point(player.rect)))
+    return events
+
+
 def resolve_combat(player, enemies, projectiles):
     """Aplica el combate de este frame y devuelve los eventos visuales [(tipo, (x, y))].
 

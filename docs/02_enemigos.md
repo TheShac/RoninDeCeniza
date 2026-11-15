@@ -97,6 +97,18 @@ cualquier estado --(golpe recibido)--> AGOTADO (breve) o MUERTO
 | Plataformas móviles | Se desplazan en línea recta o en círculo: `pos = centro + r (cos θ, sin θ)`, con `θ = ω t` | Movimiento circular uniforme | 2 |
 | Suelo de hielo | `grip` bajo: cuesta arrancar y frenar | Fricción e inercia | 2 |
 
+### Sierra giratoria (hecha)
+- Un disco de acero con 12 dientes que **gira** a 18 rad/s (unas 2,9 vueltas por segundo). Al tocar al Ronin le quita **1 corazón** y lo empuja hacia atrás y arriba (el knockback de cualquier golpe). Sigue las mismas reglas: la invulnerabilidad de 1 s tras un golpe y la del **dash**, que la atraviesa sin daño.
+- **Movimiento rotacional:** `θ ← θ + ω·dt` (se mantiene entre 0 y 2π). La punta de un diente se mueve a `v = ω·r` (con r = 26 px, 468 px/s). Con `F1` se ve `w` y `v` sobre cada sierra.
+- **Riel (opcional):** va y viene en línea recta a velocidad constante con una onda triangular `s(t) = L − |(v·t mod 2L) − L|`, así nunca se sale del riel aunque el paso de tiempo sea grande. El riel se dibuja como una línea gris con topes.
+- **Colisión círculo contra caja:** se toma el punto de la caja más cercano al centro (`clamp`) y hay golpe si `d² ≤ (0,88·r)²`. La zona de golpe es un 12 % menor que el dibujo: perdona un poco los dientes. La esquina cuenta por distancia euclidiana (no por cajas), así que rozar con la esquina de la caja no golpea.
+- **En el nivel** (`levels/*.txt`):
+  - `O`: sierra fija, centrada en la casilla (queda a medio enterrar si se pone sobre el suelo).
+  - `;sierra=col,fila,recorrido_x,recorrido_y[,velocidad[,radio]]`: sierra con riel. Posición y recorrido en casillas, velocidad en px/s (por defecto 90) y radio en px (por defecto 26). Con recorrido `0,0` queda fija. Una línea mal escrita se ignora con un aviso.
+  - Ejemplo del nivel de pruebas: `;sierra=58,11,6,0,100` (va y viene 6 casillas a la altura de la cabeza al saltar) y una `O` fija en el suelo.
+- Parámetros en `settings.py`: `SAW_RADIUS`, `SAW_HIT_SCALE`, `SAW_OMEGA`, `SAW_TEETH`, `SAW_PATH_SPEED`, `SAW_DAMAGE`. El código está en `src/hazard.py` (clase `Saw`) y `resolve_hazards` en `src/combat.py`.
+- Por ahora solo hiere al Ronin (no a los zombis ni a los proyectiles).
+
 ## Jefes
 
 ### Samurái Caído (nivel 1, vida 10)
@@ -127,6 +139,7 @@ Los enemigos pueden soltar corazones o shuriken (aprox. 20 %). Los jefes sueltan
 | Zombi corredor (campesino y ashigaru) | Hecho |
 | Zombi arquero (cazador y kyudoka) y flechas | Hecho |
 | Zombi hinchado (sumo) y explosión radial | Hecho |
-| Sierras y plataformas móviles | Pendiente |
+| Sierras giratorias (fijas y con riel) | Hecho |
+| Plataformas móviles y suelo de hielo | Pendiente |
 | Samurái Caído (jefe) | Pendiente |
 | Oni | Pendiente |
