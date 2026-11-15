@@ -92,3 +92,24 @@ RUNNER_BRAKE = 1400.0        # px/s^2 de frenado por fricción al terminar la em
 RUNNER_CHARGE_DIST = 420.0   # px máximos que recorre una embestida
 RUNNER_STUN = 0.8            # s aturdido si la embestida falla
 RUNNER_COOLDOWN = 1.2        # s antes de poder embestir de nuevo
+
+# --- Desvío (parry) ---
+PARRY_WINDOW = (0.05, 0.25)  # s del desvío durante los que la hoja devuelve proyectiles
+PARRY_LOCKOUT = 0.6          # s inutilizable si el desvío no tocó ningún proyectil
+PARRY_ZONE = (48, 56)        # caja delante del Ronin que cubre la hoja (ancho, alto)
+PARRY_SPEED_BONUS = 1.25     # el proyectil devuelto sale un 25 % más rápido
+
+# --- Flechas y zombi arquero (variantes: cazador y kyudoka) ---
+ARROW_SPEED = 420.0
+ARROW_LIFETIME = 3.0
+REFLECTED_ARROW_DAMAGE = 2   # una flecha devuelta mata a un arquero (2 de vida)
+ARCHER_SIZE = (24, 50)
+ARCHER_HEALTH = 2
+ARCHER_SIGHT = 450.0         # px a los que dispara
+ARCHER_RETREAT_DIST = 150.0  # si el Ronin se acerca más que esto, retrocede
+ARCHER_RETREAT_SPEED = 80.0
+ARCHER_COOLDOWN = 2.0        # s entre disparos
+ARCHER_SHOOT_TIME = 0.8      # duración de la animación de disparo
+ARCHER_RELEASE = 0.48        # s desde que empieza a tensar hasta que suelta la flecha
+ARCHER_BOW = (24, -35)       # salida de la flecha respecto a los pies (adelante, arriba)
+ARCHER_MAX_SLOPE = 0.7       # inclinación máxima del disparo (|dy| <= 0.7 |dx|)

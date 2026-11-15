@@ -38,7 +38,7 @@ Cálculos de referencia:
 
 ## Habilidades
 
-Estado: implementados el movimiento, agacharse, el dash y el shuriken (con su trayectoria). El tajo ya hiere a los enemigos. El desvío tiene su animación y su duración, y falta la reflexión de proyectiles, que se agrega con el zombi arquero.
+Estado: implementados el movimiento, agacharse, el dash y el shuriken (con su trayectoria). El tajo ya hiere a los enemigos. El desvío ya devuelve las flechas del arquero hacia el cursor.
 
 ### Tajo (clic izquierdo)
 - La katana barre un arco de 120° centrado en la dirección del mouse.
@@ -46,12 +46,13 @@ Estado: implementados el movimiento, agacharse, el dash y el shuriken (con su tr
 - Golpea a un enemigo si su centro está dentro del radio (80 px) y su ángulo respecto del jugador cae dentro del arco que ya recorrió la hoja.
 - Física: movimiento rotacional y ángulos entre vectores (`atan2`).
 
-### Desvío (clic derecho)
-- Abre una ventana de 0,2 s en la que los proyectiles que tocan la hoja rebotan.
-- La hoja apunta hacia el mouse con dirección unitaria `d`. La normal es `n = (-d.y, d.x)`, con el signo elegido para que `v · n < 0`.
-- Velocidad reflejada: `v' = v - 2 (v · n) n`, aumentada un 25 %.
-- Si el desvío no toca ningún proyectil, queda inutilizable 0,6 s.
-- Los proyectiles devueltos dañan a los enemigos y son la única forma de herir seriamente al Samurái Caído.
+### Desvío (clic derecho o K)
+- Abre una ventana de 0,2 s (de los 0,05 s a los 0,25 s del movimiento) en la que las flechas que tocan la hoja, una caja de 48 x 56 px delante del Ronin, rebotan.
+- **Dirección de salida.** Con el **clic derecho** la flecha sale hacia el cursor. Con la tecla **`K`** sale hacia la dirección de las teclas WASD que se mantengan (8 direcciones: por ejemplo `K` + `W` la manda hacia arriba y `K` + `D` hacia la derecha); si no se mantiene ninguna, sale hacia donde mira el Ronin, o sea de vuelta hacia quien disparó. En ningún caso el desvío gira al Ronin: solo cambia hacia dónde sale la flecha. Si se pulsa `W` junto con `K`, no cuenta como salto.
+- Cálculo (álgebra de vectores): sea `v` la velocidad de la flecha y `a` la dirección unitaria apuntada. Para que la flecha salga hacia `a`, la hoja debe tener la normal `n = (|v|·a − v) / ‖|v|·a − v‖`. Después se aplica la **ley de reflexión** `v' = v − 2 (v · n) n`, que conserva el módulo, y se multiplica por 1,25. Si la flecha ya iba hacia donde se apunta, la hoja queda de canto y solo la acelera.
+- Si el desvío no toca ninguna flecha, queda **inutilizable 0,6 s**.
+- La flecha devuelta deja de herir al Ronin, hiere a los enemigos que toque (2 de daño) y es la única forma de herir seriamente al Samurái Caído.
+- Durante el dash el Ronin es invulnerable y las flechas lo atraviesan. Con el desvío no hay invulnerabilidad: si la flecha llega fuera de la ventana o de la hoja, hiere.
 - Física: álgebra de vectores (producto punto, normalización, reflexión).
 
 ### Shuriken (E)
@@ -101,7 +102,7 @@ La paleta es negro tinta, grises, paja ocre, rojo y acero, coherente con el esti
 | `crouch_walk` | 6 | 8 cuadros/s, escalada por la velocidad real | Agachado y avanzando (S + A/D), al 40 % de la velocidad | Sí |
 | `dash` | 2 | 0,15 s | Shift | Sí, con movimiento real |
 | `attack` | 6 | 0,30 s | Clic izquierdo o J | Sí, hiere entre los 0,06 s y los 0,22 s |
-| `parry` | 4 | 0,35 s | Clic derecho o K | Solo animación (falta la reflexión) |
+| `parry` | 4 | 0,35 s | Clic derecho (hacia el cursor) o K | Sí, devuelve flechas entre los 0,05 s y los 0,25 s |
 | `throw` | 4 | 0,30 s | E | Sí: la estrella sale en el cuadro 3 (a los 0,15 s) |
 | `hurt` | 2 | 0,40 s | Recibir un golpe (F2 en modo debug) | Sí, con knockback |
 | `death` | 5 | 0,80 s | Quedarse sin vida (F3 en modo debug) | Sí |
@@ -138,7 +139,7 @@ de 96 x 96 px, con los pies en la fila 90. Para regenerar los actuales: `pip ins
 | A / D o flechas | Mover |
 | W, Espacio o flecha arriba | Saltar |
 | S | Agacharse |
-| Mouse | Apuntar tajo, desvío y shuriken |
+| Mouse | Solo apunta el desvío (con el clic derecho). Nunca gira al Ronin ni cambia el tajo o el shuriken |
 | Clic izquierdo | Tajo |
 | Clic derecho | Desvío |
 | E (mantener y soltar) | Shuriken |
@@ -174,7 +175,7 @@ Quieto <-> Corriendo
 | Diseño visual y las 12 animaciones | Hecho |
 | Recibir daño y morir (animación y knockback) | Hecho; falta conectarlo a los enemigos |
 | Tajo | Hecho: arco de 120° y 64 px, hiere durante 0,16 s y una vez por enemigo (producto punto) |
-| Desvío | Animación y duración hechas; falta la reflexión de proyectiles |
+| Desvío | Hecho: ventana de 0,2 s, reflexión de vectores hacia el cursor, +25 % de velocidad y bloqueo de 0,6 s si falla |
 | Shuriken | Hecho: sale de la mano a los 0,15 s, 700 px/s, tiro parabólico, gira a 720°/s y se clava en el mapa; falta que dañe enemigos |
 | Vida en corazones (5), invulnerabilidad de 1 s tras un golpe y reinicio al morir | Hecho |
 | Checkpoints | Pendiente |

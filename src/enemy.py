@@ -4,16 +4,21 @@ Inteligencia: máquina de estados finita (FSM)
   Walker: patrol --(Ronin a menos de WALKER_SIGHT)--> chase --(a distancia de zarpazo y recargado)--> attack
   Runner: patrol --(Ronin a menos de RUNNER_SIGHT)--> charge --(pared, borde o distancia máxima)--> brake
           brake --(falló la embestida)--> stun (aturdido, sin moverse) --> patrol
+  Archer: idle --(Ronin a la vista y recargado)--> shoot --(suelta la flecha y termina)--> idle
+          idle --(Ronin a menos de ARCHER_RETREAT_DIST y hay suelo atrás)--> retreat
   cualquier estado --(daño)--> hurt o dead
 Física: la misma que el jugador (gravedad + colisión AABB por ejes con subpasos).
 Detección: se compara el CUADRADO de la distancia con el cuadrado del rango, así no hace falta calcular la raíz.
 """
+import math
+
 import pygame
 from pygame.math import Vector2
 
 import settings as S
 from combat import rects_overlap
 from physics import move_toward, move_and_collide, overlaps
+from projectile import Arrow
 
 
 class Walker:
@@ -22,6 +27,7 @@ class Walker:
     HEALTH = S.WALKER_HEALTH
     ANIM_FOR_STATE = {"patrol": "walk", "chase": "walk", "attack": "attack", "hurt": "hurt", "dead": "death"}
     RESTART_STATES = ("attack", "hurt", "dead")
+    AFTER_HURT = "patrol"                 # estado al que vuelve tras quedar herido sin morir
 
     def __init__(self, variant, feet_x, feet_y, animations=None):
         self.variant = variant
@@ -37,6 +43,7 @@ class Walker:
         self.cooldown = 0.0
         self.hit_done = False
         self.removable = False
+        self.new_projectiles = []             # proyectiles recién lanzados; Game los recoge cada frame
         self._dt = 0.0
         self.animator = None
         if animations:
@@ -142,7 +149,7 @@ class Walker:
         elif self.state == "hurt":
             self.vel.x = move_toward(self.vel.x, 0.0, S.GROUND_FRICTION * 0.5 * dt)
             if self.state_time >= S.ENEMY_ACTION_TIME["hurt"]:
-                self._set_state("patrol")
+                self._set_state(self.AFTER_HURT)
         elif self.state == "attack":
             self.vel.x = move_toward(self.vel.x, 0.0, S.GROUND_FRICTION * dt)
             lo, hi = S.ENEMY_HIT_WINDOW
@@ -248,4 +255,87 @@ class Runner(Walker):
         return 1.0
 
 
-ENEMY_CLASSES = {"caminante": Walker, "corredor": Runner}
+class Archer(Walker):
+    """Zombi arquero: casi estático. Dispara flechas rectas cada 2 s si ve al Ronin; si se acerca, retrocede.
+
+    Tiene 2 de vida. Las flechas se pueden devolver con el desvío: una flecha devuelta lo mata de un golpe.
+    """
+    SIZE = S.ARCHER_SIZE
+    HEALTH = S.ARCHER_HEALTH
+    ANIM_FOR_STATE = {"idle": "idle", "retreat": "walk", "shoot": "shoot", "hurt": "hurt", "dead": "death",
+                      "patrol": "idle"}
+    RESTART_STATES = ("shoot", "hurt", "dead")
+    AFTER_HURT = "idle"
+
+    def __init__(self, variant, feet_x, feet_y, animations=None):
+        super().__init__(variant, feet_x, feet_y, animations)
+        self.state = "idle"
+        self.released = False
+        if self.animator:
+            self.animator.play("idle", restart=True)
+
+    def _bow_point(self):
+        return (self.center[0] + self.facing * S.ARCHER_BOW[0], self.pos.y + self.size[1] + S.ARCHER_BOW[1])
+
+    def _line_of_sight(self, level, target):
+        """True si no hay bloques entre el arco y el objetivo (se muestrea el segmento cada 12 px)."""
+        ox, oy = self._bow_point()
+        dx, dy = target[0] - ox, target[1] - oy
+        steps = max(1, int(math.hypot(dx, dy) // 12))
+        for i in range(1, steps + 1):
+            px, py = ox + dx * i / steps, oy + dy * i / steps
+            if any(overlaps(px, py, 1, 1, r) for r in level.solids):
+                return False
+        return True
+
+    def _ground_behind(self, level):
+        px = self.center[0] - self.facing * (self.size[0] / 2 + 6)
+        py = self.pos.y + self.size[1] + 4
+        return any(overlaps(px, py, 1, 1, r) for r in level.solids)
+
+    def _release(self, player):
+        """Suelta la flecha hacia donde está el Ronin en ese instante (la velocidad es ARROW_SPEED)."""
+        ox, oy = self._bow_point()
+        tx, ty = player.center
+        dx, dy = tx - ox, ty - oy
+        if dx * self.facing <= 0:                       # el Ronin pasó por detrás: dispara recto hacia adelante
+            dx, dy = float(self.facing), 0.0
+        length = math.hypot(dx, dy)
+        self.new_projectiles.append(Arrow(ox, oy, dx / length * S.ARROW_SPEED, dy / length * S.ARROW_SPEED))
+        self.released = True
+
+    def _think(self, player, level):
+        dt = self._dt
+        if self.state == "shoot":
+            self.vel.x = move_toward(self.vel.x, 0.0, S.GROUND_FRICTION * dt)
+            if not self.released and self.state_time >= S.ARCHER_RELEASE:
+                self._release(player)
+            if self.state_time >= S.ARCHER_SHOOT_TIME:
+                self._set_state("idle")
+            return
+        dx, dy = player.center[0] - self.center[0], player.center[1] - self.center[1]
+        dist2 = dx * dx + dy * dy
+        sees = (not player.dead and dist2 <= S.ARCHER_SIGHT ** 2 and self._line_of_sight(level, player.center))
+        if sees and dx != 0:
+            self.facing = 1 if dx > 0 else -1
+        cornered = self.hit_wall and self.state == "retreat"
+        if sees and dist2 < S.ARCHER_RETREAT_DIST ** 2 and self._ground_behind(level) and not cornered:
+            if self.state != "retreat":
+                self._set_state("retreat")
+            self.vel.x = move_toward(self.vel.x, -self.facing * S.ARCHER_RETREAT_SPEED, S.WALKER_ACCEL * dt)
+            return
+        if self.state != "idle":
+            self._set_state("idle")
+        self.vel.x = move_toward(self.vel.x, 0.0, S.GROUND_FRICTION * dt)
+        if sees and self.cooldown <= 0 and abs(dy) <= S.ARCHER_MAX_SLOPE * abs(dx) + 30:
+            self.cooldown = S.ARCHER_COOLDOWN
+            self.released = False
+            self._set_state("shoot")
+
+    def _anim_speed(self):
+        if self.state == "retreat":
+            return max(0.3, abs(self.vel.x) / S.ARCHER_RETREAT_SPEED)
+        return 1.0
+
+
+ENEMY_CLASSES = {"caminante": Walker, "corredor": Runner, "arquero": Archer}

@@ -196,7 +196,8 @@ class TestZombi(unittest.TestCase):
     def test_nivel_de_pruebas_tiene_enemigos_de_ambas_variantes(self):
         variantes = {(k, v) for k, v, _, _ in nivel().enemy_spawns}
         self.assertEqual(variantes, {("caminante", "aldeano"), ("caminante", "samurai"),
-                                     ("corredor", "campesino"), ("corredor", "ashigaru")})
+                                     ("corredor", "campesino"), ("corredor", "ashigaru"),
+                                     ("arquero", "cazador"), ("arquero", "kyudoka")})
 
     def test_nivel_de_pruebas_esta_marcado_como_tal(self):
         self.assertTrue(nivel().test_mode)

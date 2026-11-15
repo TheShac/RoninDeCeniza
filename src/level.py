@@ -4,7 +4,7 @@ Formato de levels/*.txt:
   - Líneas que empiezan con ';' son parámetros: ;clave=valor  (gravity, grip, nombre, modo=pruebas)
   - '#' bloque sólido, 'P' posición inicial del jugador, '.' vacío
   - Zombis (aparecen apoyados en el suelo de esa casilla): 'Z' caminante aldeano, 'X' caminante samurai,
-    'R' corredor campesino, 'A' corredor ashigaru
+    'R' corredor campesino, 'A' corredor ashigaru, 'C' arquero cazador, 'Y' arquero kyudoka
 Agregar un nivel nuevo = agregar un .txt, sin tocar el código.
 """
 import pygame
@@ -17,6 +17,8 @@ ENEMY_CHARS = {                       # letra -> (tipo, variante)
     "X": ("caminante", "samurai"),
     "R": ("corredor", "campesino"),
     "A": ("corredor", "ashigaru"),
+    "C": ("arquero", "cazador"),
+    "Y": ("arquero", "kyudoka"),
 }
 
 

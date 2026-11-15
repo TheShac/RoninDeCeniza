@@ -7,10 +7,14 @@ Ecuaciones usadas (por frame, con dt en segundos):
   dash -> v.x = dirección * DASH_SPEED durante 0,15 s; después la inercia se disipa con la fricción
 
 Las acciones (attack, parry, throw, dash, hurt, death) duran lo mismo que su animación (S.ACTION_TIME).
-Por ahora attack, parry y throw solo reproducen la animación: el daño y los proyectiles se agregan
-cuando existan los enemigos.
+- attack: el arco del tajo hiere a los enemigos durante una ventana corta (ver combat.py).
+- throw: suelta un shuriken a mitad de la animación.
+- parry: durante una ventana corta devuelve las flechas que tocan la hoja hacia el cursor (ley de reflexión);
+  si no toca ninguna, queda inutilizable un tiempo.
 """
 from dataclasses import dataclass
+
+import math
 
 import pygame
 from pygame.math import Vector2
@@ -31,6 +35,7 @@ class InputState:
     parry_pressed: bool = False
     throw_pressed: bool = False
     dash_pressed: bool = False
+    aim: tuple = None            # dirección del desvío (mouse o WASD con K); None = hacia donde mira. No gira al Ronin
 
 
 class Player:
@@ -52,6 +57,9 @@ class Player:
         self.health = S.PLAYER_MAX_HEALTH
         self.iframes = 0.0            # invulnerabilidad tras un golpe
         self.slash_hits = set()       # enemigos ya golpeados por el tajo en curso
+        self.parry_aim = (1.0, 0.0)   # hacia dónde se devuelven los proyectiles
+        self.parry_reflected = False
+        self.parry_lock = 0.0         # s que queda inutilizable el desvío tras fallar
         self.new_projectiles = []     # shurikens recién lanzados; Game los recoge cada frame
         self._thrown = False
 
@@ -92,6 +100,7 @@ class Player:
         self._restart_anim = True
         self._thrown = False
         self.slash_hits = set()
+        self.parry_reflected = False
 
     def hurt(self, source_x=None):
         """Animación de golpe con knockback: se aleja de `source_x` (o hacia atrás si no se indica)."""
@@ -123,6 +132,37 @@ class Player:
         return S.SLASH_WINDOW[0] <= t <= S.SLASH_WINDOW[1]
 
     @property
+    def parry_active(self):
+        """La hoja devuelve proyectiles solo durante una ventana corta del desvío."""
+        if self.action != "parry":
+            return False
+        t = S.ACTION_TIME["parry"] - self.action_time
+        return S.PARRY_WINDOW[0] <= t <= S.PARRY_WINDOW[1]
+
+    @property
+    def parry_zone(self):
+        w, h = S.PARRY_ZONE
+        x = self.pos.x + self.size[0] if self.facing > 0 else self.pos.x - w
+        return (x, self.pos.y + self.size[1] - h, w, h)
+
+    def reflect_projectile(self, shot):
+        """Devuelve el proyectil hacia donde se apunta.
+
+        Ley de reflexión: para que v' tenga la dirección apuntada `a` (y el mismo módulo que v), la hoja debe tener
+        la normal n = (|v| a - v) / ||...||. Luego se aplica v' = v - 2 (v . n) n y se acelera un 25 %.
+        """
+        speed = math.hypot(shot.vel.x, shot.vel.y)
+        ax, ay = self.parry_aim
+        nx, ny = ax * speed - shot.vel.x, ay * speed - shot.vel.y
+        length = math.hypot(nx, ny)
+        if length < 1e-6:                          # ya viaja hacia donde se apunta: la hoja queda de canto
+            nx, ny = -shot.vel.y / speed, shot.vel.x / speed
+        else:
+            nx, ny = nx / length, ny / length
+        shot.reflect(nx, ny)
+        self.parry_reflected = True
+
+    @property
     def slash_origin(self):
         return (self.pos.x + self.size[0] / 2, self.pos.y + self.size[1] * S.SLASH_ORIGIN_Y)
 
@@ -142,6 +182,7 @@ class Player:
     def _tick_action(self, dt):
         self.dash_cooldown = max(0.0, self.dash_cooldown - dt)
         self.iframes = max(0.0, self.iframes - dt)
+        self.parry_lock = max(0.0, self.parry_lock - dt)
         if self.action == "throw" and not self._thrown and S.ACTION_TIME["throw"] - self.action_time >= S.THROW_RELEASE:
             self._thrown = True
             hx, hy = S.SHURIKEN_HAND
@@ -150,6 +191,8 @@ class Player:
         if self.action and not self.dead:
             self.action_time -= dt
             if self.action_time <= 0:
+                if self.action == "parry" and not self.parry_reflected:
+                    self.parry_lock = S.PARRY_LOCKOUT      # el desvío no tocó nada: queda inutilizable un rato
                 self.action = None
 
     def _begin_actions(self, inp):
@@ -161,8 +204,14 @@ class Player:
             self.vel.x = self.facing * S.DASH_SPEED
         elif inp.attack_pressed:
             self.start_action("attack")
-        elif inp.parry_pressed:
+        elif inp.parry_pressed and self.parry_lock <= 0:
             self.start_action("parry")
+            aim = inp.aim
+            if aim and (aim[0] or aim[1]):
+                length = math.hypot(*aim)
+                self.parry_aim = (aim[0] / length, aim[1] / length)   # solo cambia hacia dónde sale la flecha
+            else:
+                self.parry_aim = (float(self.facing), 0.0)
         elif inp.throw_pressed:
             self.start_action("throw")
 

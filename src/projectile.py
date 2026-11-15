@@ -12,7 +12,7 @@ import pygame
 from pygame.math import Vector2
 
 import settings as S
-from physics import overlaps
+from physics import overlaps, reflect
 
 
 class Shuriken:
@@ -22,7 +22,9 @@ class Shuriken:
         self.angle = 0.0                                          # grados
         self.age = 0.0
         self.alive = True
-        self.reflected = False                                    # lo usará el desvío del Ronin
+        self.friendly = True          # daña a los enemigos (las flechas enemigas dañan al Ronin)
+        self.damage = 1
+        self.reflectable = False
 
     @property
     def rect(self):
@@ -60,3 +62,63 @@ class Shuriken:
         pts = self.points(camera)
         pygame.draw.polygon(surface, S.INK, pts)
         pygame.draw.circle(surface, S.PAPER, (round(self.pos.x - camera.x), round(self.pos.y - camera.y)), 2)
+
+
+class Arrow:
+    """Flecha: vuela en línea recta (sin gravedad) y se puede devolver con el desvío del Ronin.
+
+    Desvío: v' = v - 2 (v . n) n, con la normal n de la hoja, y luego se multiplica por 1,25.
+    Una flecha devuelta deja de herir al Ronin y hiere a los enemigos que toque.
+    """
+
+    def __init__(self, x, y, vx, vy):
+        self.pos = Vector2(x, y)                                  # punta de la flecha
+        self.vel = Vector2(vx, vy)
+        self.age = 0.0
+        self.alive = True
+        self.friendly = False         # al nacer hiere al Ronin
+        self.damage = 1
+        self.reflectable = True
+        self.reflected = False
+
+    @property
+    def rect(self):
+        return (self.pos.x - 6, self.pos.y - 3, 12, 6)
+
+    def reflect(self, nx, ny):
+        """Devuelve la flecha: refleja la velocidad con la normal (nx, ny) y la acelera un 25 %."""
+        vx, vy = reflect(self.vel.x, self.vel.y, nx, ny)
+        self.vel.update(vx * S.PARRY_SPEED_BONUS, vy * S.PARRY_SPEED_BONUS)
+        self.friendly = True
+        self.reflectable = False
+        self.reflected = True
+        self.damage = S.REFLECTED_ARROW_DAMAGE
+        self.age = 0.0
+
+    def update(self, dt, level):
+        if not self.alive:
+            return
+        self.age += dt
+        self.pos += self.vel * dt
+        if self.age > S.ARROW_LIFETIME or not (-100 < self.pos.x < level.width + 100) \
+                or not (-300 < self.pos.y < level.height + 300):
+            self.alive = False
+        elif any(overlaps(self.pos.x, self.pos.y, 1, 1, r) for r in level.solids):
+            self.alive = False                                    # se clava en el mapa
+
+    def draw(self, surface, camera):
+        speed = self.vel.length()
+        if speed == 0:
+            return
+        dx, dy = self.vel.x / speed, self.vel.y / speed           # dirección de vuelo: la flecha apunta hacia donde va
+        tip = (self.pos.x - camera.x, self.pos.y - camera.y)
+        tail = (tip[0] - dx * 22, tip[1] - dy * 22)
+        color = S.RED if self.reflected else S.INK
+        pygame.draw.line(surface, color, tail, tip, 2)
+        px, py = -dy, dx                                          # perpendicular, para la punta y las plumas
+        pygame.draw.polygon(surface, S.GREY if not self.reflected else S.RED,
+                            [(tip[0] + dx * 5, tip[1] + dy * 5), (tip[0] - dx * 3 + px * 3, tip[1] - dy * 3 + py * 3),
+                             (tip[0] - dx * 3 - px * 3, tip[1] - dy * 3 - py * 3)])
+        for sign in (-1, 1):
+            pygame.draw.line(surface, S.RED, (tail[0] + dx * 4, tail[1] + dy * 4),
+                             (tail[0] - dx * 2 + px * 3 * sign, tail[1] - dy * 2 + py * 3 * sign), 1)

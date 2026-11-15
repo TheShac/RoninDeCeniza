@@ -1,7 +1,7 @@
 """Galería de animaciones: muestra todas las animaciones en bucle.
 
 Uso:  python tools/ver_animaciones.py          (el Ronin: 6 animaciones por fila)
-      python tools/ver_animaciones.py zombi    (todos los zombis: una fila por variante, 4 animaciones por fila)
+      python tools/ver_animaciones.py zombi    (todos los zombis: una fila por variante, 5 animaciones por fila)
 (Esc para salir)
 Sirve para revisar el arte sin tener que jugar. Las animaciones de acción se repiten con una pausa al final.
 """
@@ -38,7 +38,7 @@ def cargar(zombi):
 
 def main():
     zombi = "zombi" in sys.argv[1:]
-    cols = 4 if zombi else 6
+    cols = 5 if zombi else 6
     pygame.init()
     pygame.display.set_mode((400, 300))          # hace falta una ventana antes de cargar imágenes
     items = cargar(zombi)

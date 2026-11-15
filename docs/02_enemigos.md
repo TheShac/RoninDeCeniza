@@ -58,10 +58,20 @@ cualquier estado --(golpe recibido)--> AGOTADO (breve) o MUERTO
 ![Animaciones del zombi corredor](img/zombi_corredor.png)
 
 ### Zombi arquero
-- Se queda en su plataforma. Si el jugador se acerca a menos de 150 px, retrocede a 80 px/s.
-- Si tiene al jugador en línea de visión a menos de 450 px, dispara una flecha cada 2 s a 420 px/s.
-- Las flechas pueden desviarse con el desvío; la flecha reflejada hiere a cualquier enemigo que toque.
-- Cómo vencerlo: desviar la flecha de vuelta, o subir a su plataforma y atacar.
+- Tiene **2 de vida** y está casi quieto. Si ve al Ronin a menos de 450 px, con línea de visión libre (ningún bloque en medio), dispara una flecha cada 2 s.
+- El disparo dura 0,8 s: coloca la flecha, tensa el arco, **suelta a los 0,48 s** y baja el arco. Apunta hacia donde está el Ronin en el instante de soltar, así que moverse mientras tensa sirve para esquivar. La flecha sale a 420 px/s en línea recta (sin gravedad) y quita 1 corazón al tocar al Ronin. Solo dispara si el ángulo es razonable (inclinación máxima de 0,7).
+- Si el Ronin se acerca a menos de 150 px, **retrocede** a 80 px/s sin darle la espalda. Si detrás hay un borde o una pared, queda acorralado y dispara a quemarropa.
+- Un golpe sin matarlo lo interrumpe: si estaba tensando, no suelta la flecha.
+- Cómo vencerlo: **desviar la flecha** (una flecha devuelta hace 2 de daño y lo mata de un golpe), un tajo y un shuriken (2 golpes), o el dash para cruzar su línea de tiro.
+- **Dos variantes de apariencia**, con el mismo comportamiento:
+  - **Cazador**: cazador de la montaña con chaleco de piel con flecos, pelo enmarañado y un arco largo.
+  - **Kyudoka**: arquero de la corte, con kimono desteñido, hakama índigo y *eboshi* (gorro negro de corte).
+- Animaciones (en `assets/images/zombi/arquero/<variante>_<animación>.png`): `idle` (4 cuadros), `walk` (6, al retroceder), `shoot` (5, dura 0,8 s), `hurt` (2) y `death` (5).
+- En el nivel de pruebas se colocan con las letras `C` (cazador) y `Y` (kyudoka), o con las teclas `5` y `6`.
+
+![Animaciones del zombi arquero](img/zombi_arquero.png)
+
+**Flecha (`Arrow`)**: se mueve en línea recta con `pos += v · dt`, se clava en los bloques y desaparece a los 3 s. Se dibuja orientada según su velocidad. Una flecha devuelta cambia de dueño: deja de herir al Ronin, hiere a cualquier enemigo que toque (2 de daño) y sale un 25 % más rápida.
 
 ### Zombi hinchado
 - Camina a 40 px/s. Al morir explota: radio de 96 px, 1 de daño y un impulso radial.
@@ -101,10 +111,10 @@ Los enemigos pueden soltar corazones o shuriken (aprox. 20 %). Los jefes sueltan
 
 | Elemento | Estado |
 |---|---|
-| Máquina de estados y detección | Hecho para el caminante y el corredor |
+| Máquina de estados y detección | Hecho para el caminante, el corredor y el arquero |
 | Zombi caminante (aldeano y samurái) | Hecho |
 | Zombi corredor (campesino y ashigaru) | Hecho |
-| Zombi arquero y proyectiles | Pendiente |
+| Zombi arquero (cazador y kyudoka) y flechas | Hecho |
 | Zombi hinchado | Pendiente |
 | Sierras y plataformas móviles | Pendiente |
 | Samurái Caído (jefe) | Pendiente |

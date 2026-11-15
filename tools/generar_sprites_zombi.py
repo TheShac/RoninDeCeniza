@@ -8,11 +8,15 @@ Cada tipo de zombi tiene dos variantes, para que no todos se vean iguales, y su 
   corredor (assets/images/zombi/corredor/)
     campesino: flaco, torso al aire con costillas y cicatrices, hakama rota y banda en la frente.
     ashigaru : soldado raso con jingasa (sombrero de hierro), coraza ligera de cuero y falda de placas.
+  arquero (assets/images/zombi/arquero/)
+    cazador  : cazador de la montaña con chaleco de piel, pelo enmarañado y un arco corto.
+    kyudoka  : arquero de la corte, kimono desteñido, hakama índigo y eboshi (gorro negro de corte).
 
 Cada animación es una tira horizontal de cuadros de 96x96 px, mirando a la DERECHA (en el juego se voltea).
 Archivos: <tipo>/<variante>_<animación>.png
   caminante: walk (6), attack (4), hurt (2), death (5)
   corredor : walk (6), run (6), stun (2), death (5)
+  arquero  : idle (4), walk (6), shoot (5), hurt (2), death (5)
 
 Usa el mismo esqueleto de ángulos (cinemática directa) y las mismas herramientas de dibujo que el Ronin:
   posición de la articulación = posición anterior + longitud * (sen(ángulo), cos(ángulo)).
@@ -57,6 +61,17 @@ VARIANTS = {
         cloth=SKIN, cloth_far=SKIN_FAR, cloth_dark=SKIN_DARK,
         sash=(150, 60, 50, 255), leg=(104, 92, 76, 255), leg_far=(78, 68, 56, 255), sleeve=SKIN, forearm=SKIN,
     ),
+    "cazador": dict(
+        armor=False, bare=False, hakama=False, hat="hair", blade=False, vest=True,
+        cloth=(88, 70, 50, 255), cloth_far=(66, 52, 38, 255), cloth_dark=(46, 36, 26, 255),
+        sash=(130, 50, 44, 255), leg=SKIN, leg_far=SKIN_FAR, sleeve=(88, 70, 50, 255), forearm=SKIN,
+    ),
+    "kyudoka": dict(
+        armor=False, bare=False, hakama=True, hat="eboshi", blade=False,
+        cloth=(176, 170, 156, 255), cloth_far=(138, 132, 120, 255), cloth_dark=(96, 90, 80, 255),
+        sash=(56, 60, 90, 255), leg=(48, 58, 88, 255), leg_far=(36, 42, 66, 255), sleeve=(176, 170, 156, 255),
+        forearm=SKIN,
+    ),
     "ashigaru": dict(
         armor=True, bare=False, hakama=True, hat="jingasa", blade=False,
         cloth=(82, 64, 48, 255), cloth_far=(60, 46, 36, 255), cloth_dark=(40, 30, 24, 255),
@@ -69,7 +84,11 @@ VARIANTS = {
 TYPES = {
     "caminante": ("aldeano", "samurai"),
     "corredor": ("campesino", "ashigaru"),
+    "arquero": ("cazador", "kyudoka"),
 }
+
+WOOD = (104, 74, 42, 255)
+STRING = (222, 216, 196, 255)
 
 
 def claw(cv, end, ang, color):
@@ -92,8 +111,41 @@ def broken_blade(cv, hand, ang):
     cv.poly([point(tsuba, 7.0, ang + 7), tip, jag], STEEL_DARK)
 
 
+def ik_arm(origin, target, l1, l2, bend):
+    """Cinemática inversa de un brazo de dos segmentos: devuelve (a1, a2) para que la mano llegue a `target`.
+    `bend` (+1 o -1) elige hacia qué lado se dobla el codo. Ángulos en la convención del esqueleto."""
+    dx, dy = target[0] - origin[0], target[1] - origin[1]
+    d = max(0.5, min(math.hypot(dx, dy), l1 + l2 - 0.05))
+    base = math.degrees(math.atan2(dx, dy))
+    cos_a = (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d)
+    alpha = math.degrees(math.acos(max(-1.0, min(1.0, cos_a))))
+    a1 = base + bend * alpha
+    elbow = point(origin, l1, a1)
+    a_end = math.degrees(math.atan2(target[0] - elbow[0], target[1] - elbow[1]))
+    return (a1, a_end - a1)
+
+
+def draw_bow(cv, hand, pull=0.0, arrow=False, back_hand=None):
+    """Arco largo asimétrico (yumi) sujeto por `hand`. Con `pull` > 0 la cuerda pasa por `back_hand`."""
+    hx, hy = hand
+    top, bottom = (hx + 1.0, hy - 17.0), (hx + 1.0, hy + 13.0)
+    pts = []
+    for i in range(13):
+        t = i / 12
+        pts.append((hx + 1.0 + 4.6 * math.sin(math.pi * t) - 1.4 * (abs(t - 0.5) * 2) ** 3, top[1] + t * (bottom[1] - top[1])))
+    cv.line(pts, 1.7, WOOD)
+    nock = back_hand if (back_hand is not None and pull > 0) else None
+    cv.line([top, nock, bottom] if nock else [top, bottom], 0.55, STRING)
+    if arrow and nock:
+        tail, tip = (nock[0], hy), (hx + 9.5, hy)
+        cv.line([tail, tip], 0.9, (60, 50, 40, 255))
+        cv.poly([(tip[0], tip[1] - 1.3), (tip[0] + 3.4, tip[1]), (tip[0], tip[1] + 1.3)], STEEL)
+        cv.line([(tail[0] + 1.2, hy), (tail[0] - 0.4, hy - 1.7)], 0.6, RED)
+        cv.line([(tail[0] + 1.2, hy), (tail[0] - 0.4, hy + 1.7)], 0.6, RED)
+
+
 def draw_zombie(variant, bob=0.0, lean=18.0, front_leg=(10, -6), back_leg=(-10, 8), front_arm=(80, 6),
-                back_arm=(92, 4), head_drop=3.0, sway=0.0, mouth=0.0, hit=False):
+                back_arm=(92, 4), head_drop=3.0, sway=0.0, mouth=0.0, hit=False, bow=None):
     v = VARIANTS[variant]
     armor, bare, wide, hat, blade = v["armor"], v["bare"], v["hakama"], v["hat"], v["blade"]
     cv = Canvas()
@@ -109,6 +161,15 @@ def draw_zombie(variant, bob=0.0, lean=18.0, front_leg=(10, -6), back_leg=(-10, 
     shoulder = (hip[0] + TORSO * ls + sway, hip[1] - TORSO * lc)
     head = (shoulder[0] + 2.0 * ls + head_drop, shoulder[1] - 6.4 + head_drop * 0.25)
     nrm = (lc, ls)                                            # perpendicular al eje del torso
+
+    # ---- arco: si apunta, los dos brazos se calculan con cinemática inversa ----
+    bow_hand = back_hand = None
+    if bow and bow.get("aim"):
+        pull = bow.get("pull", 0.0)
+        bow_hand = (shoulder[0] + 15.0, shoulder[1] + 1.5)
+        back_hand = (bow_hand[0] - 2.0 - 11.0 * pull, bow_hand[1])
+        front_arm = ik_arm((shoulder[0] + 1.2, shoulder[1] + 1.5), bow_hand, UPPER, FORE, -1)
+        back_arm = ik_arm((shoulder[0] - 1.0, shoulder[1] + 1.5), back_hand, UPPER, FORE, bow.get("bend", 1))
 
     def sandal(end, color):
         cv.line([(end[0] - 1.2, end[1] - 0.5), (end[0] + 3.8, end[1] - 0.5)], 2.4, color)
@@ -173,6 +234,15 @@ def draw_zombie(variant, bob=0.0, lean=18.0, front_leg=(10, -6), back_leg=(-10, 
         cv.line([(sx - 1.0, sy - 1.0), (hx + 1.5, hy - 2.0)], 1.0, v["cloth_dark"])   # solapa del kimono
         cv.poly([(sx + 1.4, sy - 3.4), (sx + 4.4, sy - 2.2), (sx + 2.0, sy + 3.6)], SKIN)  # pecho al aire (cuello en V)
         cv.line([(sx + 1.2, sy - 0.6), (sx + 3.4, sy + 0.2)], 0.8, BLOOD)
+    if v.get("vest"):                                         # chaleco de piel con flecos
+        top_l, top_r = (sx - nrm[0] * tw_s, sy - nrm[1] * tw_s), (sx + nrm[0] * tw_s, sy + nrm[1] * tw_s)
+        mid_l = (sx + (hx - sx) * 0.78 - nrm[0] * tw_h, sy + (hy - sy) * 0.78 - nrm[1] * tw_h)
+        mid_r = (sx + (hx - sx) * 0.78 + nrm[0] * tw_h, sy + (hy - sy) * 0.78 + nrm[1] * tw_h)
+        cv.poly([top_l, top_r, mid_r, mid_l], (112, 82, 54, 255))
+        for k in range(4):
+            fx = mid_l[0] + (mid_r[0] - mid_l[0]) * k / 3
+            fy = mid_l[1] + (mid_r[1] - mid_l[1]) * k / 3
+            cv.line([(fx, fy), (fx - 0.6, fy + 2.6)], 0.8, (112, 82, 54, 255))
     # obi (cinto)
     ax, ay = hx - (hx - sx) * 0.08, hy - (hy - sy) * 0.08
     cv.line([(ax - nrm[0] * tw_h, ay - nrm[1] * tw_h), (ax + nrm[0] * tw_h, ay + nrm[1] * tw_h)], 2.8, v["sash"])
@@ -203,6 +273,13 @@ def draw_zombie(variant, bob=0.0, lean=18.0, front_leg=(10, -6), back_leg=(-10, 
         cv.line([(head[0] + 0.6, head[1] - 7.6), (head[0] + 2.0, head[1] - 5.0)], 0.5, BONE)             # grieta
         cv.line([(head[0] - 0.4, head[1] - 7.8), (head[0] - 2.4, head[1] - 10.4)], 1.2, (130, 100, 40, 255))  # cuerno roto
         cv.line([(head[0] - 5.0, head[1] + 0.6), (head[0] - 5.4, head[1] + 4.6)], 1.6, HAIR)             # pelo suelto
+    elif hat == "eboshi":
+        # gorro negro de corte (eboshi), torcido, con cordón al mentón
+        cv.poly([(head[0] - 4.0, head[1] - 1.8), (head[0] + 4.4, head[1] - 2.6), (head[0] + 3.0, head[1] - 11.0),
+                 (head[0] - 1.4, head[1] - 13.2), (head[0] - 3.6, head[1] - 8.0)], (22, 22, 28, 255))
+        cv.line([(head[0] - 3.4, head[1] - 3.0), (head[0] + 3.4, head[1] - 3.6)], 0.8, (70, 72, 88, 255))
+        cv.line([(head[0] - 4.2, head[1] - 0.6), (head[0] - 4.6, head[1] + 4.2)], 0.8, RED_DARK)
+        cv.line([(head[0] - 5.0, head[1] + 0.2), (head[0] - 5.6, head[1] + 5.0)], 1.4, HAIR)
     elif hat == "jingasa":
         # sombrero de hierro cónico (jingasa) abollado, con barboquejo
         cv.ellipse((head[0], head[1] - 0.8), 9.2, 2.0, (34, 34, 42, 255))
@@ -223,6 +300,8 @@ def draw_zombie(variant, bob=0.0, lean=18.0, front_leg=(10, -6), back_leg=(-10, 
         cv.line([(head[0] - 4.8, head[1] - 1.6), (head[0] - 8.0, head[1] + 0.8)], 0.8, BONE)
     # brazo cercano (y la katana rota del samurái)
     mid, end = arm_draw((shoulder[0] + 1.2, shoulder[1] + 1.5), front_arm, False)
+    if bow:
+        draw_bow(cv, end, bow.get("pull", 0.0), bow.get("arrow", False), back_hand)
     if blade:
         broken_blade(cv, end, front_arm[0] + front_arm[1])
     if hit:                                                                          # destello al recibir un golpe
@@ -233,7 +312,7 @@ def draw_zombie(variant, bob=0.0, lean=18.0, front_leg=(10, -6), back_leg=(-10, 
 
 
 # ---------------------------------------------------------------- animaciones
-def anim_walk(variant):
+def anim_walk(variant, carry_bow=False):
     """Caminar arrastrando los pies: pasos cortos, brazos extendidos y cabeza colgando."""
     frames = []
     n = 6
@@ -244,7 +323,8 @@ def anim_walk(variant):
         frames.append(draw_zombie(variant, bob=0.8 * abs(math.sin(p)), lean=18 + 2 * math.sin(p), front_leg=fl,
                                   back_leg=bl, front_arm=(78 + 8 * math.sin(p), 8), back_arm=(88 - 8 * math.sin(p), 6),
                                   head_drop=3.0 + 0.8 * math.sin(p + 1), sway=0.8 * math.sin(p),
-                                  mouth=0.4 * (1 + math.sin(p))).result())
+                                  mouth=0.4 * (1 + math.sin(p)),
+                                  bow=dict(aim=False) if carry_bow else None).result())
     return frames
 
 
@@ -301,9 +381,38 @@ def anim_stun(variant):
     return frames
 
 
+def anim_idle_archer(variant):
+    """De pie con el arco bajo, respirando."""
+    frames = []
+    for i in range(4):
+        p = 2 * math.pi * i / 4
+        frames.append(draw_zombie(variant, lean=8 + math.sin(p), front_arm=(34, 14), back_arm=(12, 10),
+                                  front_leg=(8, -4), back_leg=(-8, 6), head_drop=2.0 + 0.6 * math.sin(p),
+                                  sway=0.4 * math.sin(p), mouth=0.3 * (1 + math.sin(p)),
+                                  bow=dict(aim=False)).result())
+    return frames
+
+
+def anim_shoot(variant):
+    """Disparo en 5 cuadros: coloca la flecha, tensa, mantiene, suelta (cuadro 4) y baja el arco."""
+    pasos = (dict(pull=0.0, arrow=True), dict(pull=0.55, arrow=True), dict(pull=1.0, arrow=True),
+             dict(pull=0.0, arrow=False), None)
+    frames = []
+    for i, bow in enumerate(pasos):
+        if bow is None:                                                  # recupera la postura
+            frames.append(draw_zombie(variant, lean=8, front_arm=(60, 10), back_arm=(28, 12), front_leg=(8, -4),
+                                      back_leg=(-8, 6), head_drop=2.0, bow=dict(aim=False)).result())
+        else:
+            frames.append(draw_zombie(variant, lean=6 + 2 * bow["pull"], front_leg=(8, -4), back_leg=(-8, 6),
+                                      head_drop=1.5, mouth=2.0 * bow["pull"], bow=dict(aim=True, **bow)).result())
+    return frames
+
+
 ANIMS_BY_TYPE = {
     "caminante": {"walk": anim_walk, "attack": anim_attack, "hurt": anim_hurt, "death": anim_death},
     "corredor": {"walk": anim_walk, "run": anim_run, "stun": anim_stun, "death": anim_death},
+    "arquero": {"idle": anim_idle_archer, "walk": lambda v: anim_walk(v, carry_bow=True), "shoot": anim_shoot,
+                "hurt": anim_hurt, "death": anim_death},
 }
 
 

@@ -29,7 +29,14 @@ def slash_hits_rect(origin, facing, rect, reach=S.SLASH_REACH, arc=S.SLASH_ARC):
 
 
 def resolve_combat(player, enemies, projectiles):
-    """Aplica el daño del Ronin (tajo y shurikens) a los enemigos. Cada tajo hiere a cada enemigo una vez."""
+    """Aplica el combate de este frame y devuelve los eventos visuales [(tipo, (x, y))].
+
+    - Tajo del Ronin: hiere a cada enemigo del arco una sola vez.
+    - Proyectiles amistosos (shuriken, flechas devueltas): hieren al primer enemigo que tocan.
+    - Proyectiles hostiles (flechas): el desvío los devuelve si están dentro de la hoja; si no, hieren al Ronin
+      (salvo que sea invulnerable, p. ej. durante el dash: entonces lo atraviesan).
+    """
+    events = []
     if player.slash_active:
         for enemy in enemies:
             if enemy.can_be_hit and id(enemy) not in player.slash_hits \
@@ -39,8 +46,16 @@ def resolve_combat(player, enemies, projectiles):
     for shot in projectiles:
         if not shot.alive:
             continue
-        for enemy in enemies:
-            if enemy.can_be_hit and rects_overlap(shot.rect, enemy.rect):
-                enemy.damage(1, shot.pos.x)
+        if shot.friendly:
+            for enemy in enemies:
+                if enemy.can_be_hit and rects_overlap(shot.rect, enemy.rect):
+                    enemy.damage(shot.damage, shot.pos.x)
+                    shot.alive = False
+                    break
+        elif shot.reflectable and player.parry_active and rects_overlap(shot.rect, player.parry_zone):
+            player.reflect_projectile(shot)
+            events.append(("spark", (shot.pos.x, shot.pos.y)))
+        elif rects_overlap(shot.rect, player.rect):
+            if player.take_damage(shot.pos.x):
                 shot.alive = False
-                break
+    return events

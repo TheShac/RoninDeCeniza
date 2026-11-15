@@ -21,6 +21,12 @@ def move_toward(value, target, max_delta):
     return value + math.copysign(max_delta, target - value)
 
 
+def reflect(vx, vy, nx, ny):
+    """Reflexión de un vector: v' = v - 2 (v . n) n, con n unitario (normal de la superficie)."""
+    dot = vx * nx + vy * ny
+    return vx - 2 * dot * nx, vy - 2 * dot * ny
+
+
 def overlaps(x, y, w, h, rect):
     """True si la caja (x, y, w, h) se solapa con `rect` (los bordes que solo se tocan no cuentan)."""
     return x < rect.right and x + w > rect.left and y < rect.bottom and y + h > rect.top

@@ -50,14 +50,20 @@ El ronin, un samurái sin señor que lleva años vagando por los caminos, regres
 | `A` / `D` o flechas            | Mover                                                                             |
 | `W`, `Espacio` o flecha arriba | Saltar (mantener para más altura)                                                |
 | `S` (mantener)                   | Agacharse; si además se mueve, avanza agachado (más lento)                      |
-| Clic izquierdo o `J`             | Tajo (hiere en un arco de 120°)                                                  |
-| Clic derecho o `K`               | Desvío (solo animación por ahora)                                               |
+| Clic izquierdo o `J`             | Tajo hacia donde mira el Ronin (hiere en un arco de 120°; el mouse no lo cambia) |
+| Clic derecho o `K`               | Desvío. Clic derecho: la flecha sale hacia el cursor. `K`: hacia la dirección de WASD que mantengas (por defecto, hacia donde mira) |
 | `E`                              | Lanzar shuriken                                                                   |
 | `Shift`                          | Dash                                                                              |
 | `Esc`                            | Salir (la pausa vendrá con los menús)                                           |
 | `R`                              | Reiniciar nivel                                                                   |
 | `F1`                             | Modo debug (con él: `F2` golpe de prueba, `F3` muerte)                       |
-| `1` / `2` / `3` / `4`            | Solo en el nivel de pruebas: genera delante del Ronin un caminante aldeano, un caminante samurái, un corredor campesino o un corredor ashigaru |
+| `1` a `6`                        | Solo en el nivel de pruebas: genera delante del Ronin un zombi (1-2 caminantes, 3-4 corredores, 5-6 arqueros) |
+
+Notas sobre los controles:
+- El Ronin siempre mira hacia donde se mueve (`A`/`D`). El mouse no lo gira: el tajo y el shuriken salen hacia donde mira. Solo el desvío tiene dirección propia.
+- `J`, `E` y `K` se pueden usar caminando, saltando, cayendo o agachado. Mientras dura la acción se avanza al 50 % de la velocidad (`ACTION_SPEED_MULT` en `settings.py`).
+- Con `F1` se muestran las teclas mantenidas y las acciones recibidas. Sirve para detectar si el teclado "pierde" alguna combinación de teclas pulsadas a la vez (*ghosting*, depende del hardware).
+- Las teclas se pueden cambiar en el diccionario `KEYMAP` de `src/game.py`.
 
 ## Conceptos de física y matemáticas aplicados
 
@@ -65,7 +71,7 @@ El ronin, un samurái sin señor que lleva años vagando por los caminos, regres
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------- |
 | Leyes de movimiento   | Gravedad, salto, aceleración, fricción e inercia (`player.py`, `physics.py`); embestida del corredor con aceleración constante (`enemy.py`)                                     | Implementado              |
 | Colisiones            | Cajas AABB resueltas por eje con subpasos (`physics.py`)                                                             | Implementado              |
-| Álgebra de vectores  | `Vector2` para posición y velocidad; producto punto en el arco del tajo, knockback; falta la reflexión del desvío | En curso                  |
+| Álgebra de vectores  | `Vector2` para posición y velocidad; producto punto en el arco del tajo, knockback; reflexión de las flechas en el desvío (`v' = v − 2(v·n)n`) | Implementado              |
 | Movimiento rotacional | Arco del tajo, shuriken giratorio, sierras                                                                             | En curso (shuriken hecho) |
 | Tiro parabólico      | Shuriken y rocas del Oni                                                                                               | En curso (shuriken hecho) |
 | Perspectiva           | Parallax de fondo en varias capas                                                                                      | Pendiente                 |
@@ -110,12 +116,12 @@ tiempo de gracia del salto (coyote time).
 
 ```
 RoninDeCeniza/
-  src/          código fuente (main, game, player, enemy, combat, projectile, animation, level, camera, physics, settings)
+  src/          código fuente (main, game, controls, player, enemy, combat, projectile, animation, level, camera, physics, settings)
   tests/        pruebas de la física, las animaciones, el combate y los enemigos
   tools/        generadores de sprites (Ronin y zombis) y galería de animaciones
   levels/       mapas de los niveles (.txt)
   assets/
-    images/     sprites: ronin/ y zombi/<tipo>/ (caminante, corredor), una hoja por animación
+    images/     sprites: ronin/ y zombi/<tipo>/ (caminante, corredor, arquero), una hoja por animación
     sounds/     efectos y música
   docs/         documentación de diseño (protagonista y enemigos)
   requirements.txt
@@ -138,7 +144,7 @@ RoninDeCeniza/
 - [X] Shuriken (trayectoria parabólica y rotación)
 - [X] Tajo con arco de daño, zombi caminante (aldeano y samurái), vida en corazones y knockback
 - [X] Zombi corredor (campesino y ashigaru) con embestida acelerada y aturdimiento
-- [ ] Proyectiles, arquero, desvío y shuriken
+- [X] Flechas, zombi arquero (cazador y kyudoka), desvío con reflexión de vectores y shuriken
 - [ ] Nivel 1 completo con parallax y primer jefe
 - [ ] Dash, menús y estados del juego, sonido
 - [ ] Nivel 2 y segundo jefe

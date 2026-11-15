@@ -88,6 +88,7 @@ def load_ronin_animations():
 ENEMY_VARIANTS = {
     "caminante": ("aldeano", "samurai"),
     "corredor": ("campesino", "ashigaru"),
+    "arquero": ("cazador", "kyudoka"),
 }
 ENEMY_ANIMATIONS = {
     "caminante": {
@@ -100,6 +101,13 @@ ENEMY_ANIMATIONS = {
         "walk": dict(fps=7, loop=True),
         "run": dict(fps=14, loop=True),
         "stun": dict(fps=4, loop=True),
+        "death": dict(duration=S.ENEMY_ACTION_TIME["death"]),
+    },
+    "arquero": {
+        "idle": dict(fps=4, loop=True),
+        "walk": dict(fps=7, loop=True),
+        "shoot": dict(duration=S.ARCHER_SHOOT_TIME),
+        "hurt": dict(duration=S.ENEMY_ACTION_TIME["hurt"]),
         "death": dict(duration=S.ENEMY_ACTION_TIME["death"]),
     },
 }
