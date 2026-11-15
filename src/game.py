@@ -6,6 +6,7 @@ import pygame
 import settings as S
 from animation import Animator, ENEMY_VARIANTS, load_ronin_animations, load_enemy_animations
 from camera import Camera
+from parallax import Parallax
 from combat import apply_blast, resolve_combat, resolve_hazards
 from hazard import Saw
 from config import fit, load_config, to_logical, window_size
@@ -104,6 +105,10 @@ class Game:
         if self.ronin_animations:
             self.player.animator = Animator(self.ronin_animations)
         self.camera = Camera(self.level.width, self.level.height)
+        enabled = getattr(getattr(self, "parallax", None), "enabled", True)       # F4 se conserva al cambiar de nivel
+        self.parallax = Parallax.load(self.level.background) if self.level.background else None
+        if self.parallax:
+            self.parallax.enabled = enabled
 
     def spawn_enemy(self, kind, variant):
         """Modo pruebas: genera un zombi delante del Ronin (o detrás si delante no hay sitio ni suelo)."""
@@ -145,6 +150,8 @@ class Game:
                     self.running = False          # más adelante: menú de pausa
                 elif event.key == pygame.K_F1:
                     self.debug = not self.debug
+                elif event.key == pygame.K_F4 and self.parallax:           # fondo con / sin parallax (para comparar)
+                    self.parallax.enabled = not self.parallax.enabled
                 elif event.key == pygame.K_F11:
                     self.toggle_fullscreen()
                 elif event.key == pygame.K_F2 and self.debug:
@@ -224,7 +231,10 @@ class Game:
 
     # ----------------------------------------------------------------- dibujo
     def draw(self):
-        self.screen.fill(S.PAPER)
+        if self.parallax:
+            self.parallax.draw(self.screen, self.camera.x, self.camera.y)
+        else:
+            self.screen.fill(S.PAPER)
         self.level.draw(self.screen, self.camera, self.debug)
         if self.level.test_mode:                                    # rótulos de zona del nivel de pruebas
             for sx, sy, text in self.level.signs:

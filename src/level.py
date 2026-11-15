@@ -11,6 +11,7 @@ Formato de levels/*.txt:
       ;plataforma=lineal,col,fila,ancho,recorrido_x,recorrido_y[,velocidad]     (ida y vuelta; recorrido en casillas)
       ;plataforma=circular,col,fila,ancho,radio[,omega]                         (gira alrededor del centro de la casilla;
                                                                                radio en casillas, omega en rad/s)
+  - ;fondo=aldea  fondo con parallax (capas en assets/images/fondos; ver src/parallax.py)
   - ;letrero=col,fila,texto  rótulo de ayuda que se dibuja en el mundo (solo en el modo pruebas)
   - 'O' sierra giratoria fija (centrada en la casilla). Una sierra con riel: ;sierra=col,fila,recorrido_x,recorrido_y[,velocidad[,radio]]
 Agregar un nivel nuevo = agregar un .txt, sin tocar el código.
@@ -39,6 +40,7 @@ class Level:
         self.gravity = GRAVITY
         self.grip = 1.0           # 1.0 suelo normal, valores bajos = hielo (poca fricción)
         self.solids = []
+        self.background = None    # nombre del fondo con parallax (;fondo=aldea)
         self.test_mode = False    # ;modo=pruebas habilita las teclas 1 y 2 para generar zombis
         self.spawn = (TILE, TILE)
         self.enemy_spawns = []    # (tipo, variante, x de los pies, y de los pies)
@@ -178,6 +180,8 @@ class Level:
                 self.signs.append((float(col) * TILE, float(row) * TILE, text.strip()))
             except ValueError:
                 print(f"Aviso: letrero ignorado ({value!r})")
+        elif key == "fondo":
+            self.background = value or None
         elif key == "modo":
             self.test_mode = value == "pruebas"
         elif key == "nombre":

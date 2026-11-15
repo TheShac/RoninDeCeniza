@@ -1,5 +1,6 @@
 ;nombre=Aldea en llamas (prototipo)
 ;modo=pruebas
+;fondo=aldea
 ;gravity=2200
 ;grip=1.0
 ;sierra=58,11,6,0,100

@@ -57,6 +57,7 @@ El ronin, un samurái sin señor que lleva años vagando por los caminos, regres
 | `Esc`                            | Salir (la pausa vendrá con los menús)                                           |
 | `R`                              | Reiniciar nivel                                                                   |
 | `F1`                             | Modo debug (con él: `F2` golpe de prueba, `F3` muerte)                       |
+| `F4`                             | Fondo con / sin parallax (para comparar la perspectiva)                          |
 | `F11`                            | Pantalla completa (alterna)                                                      |
 | `1` a `7`                        | Solo en el nivel de pruebas: genera delante del Ronin un zombi (1-2 caminantes, 3-4 corredores, 5-6 arqueros, 7 hinchado) |
 
@@ -75,7 +76,7 @@ Notas sobre los controles:
 | Álgebra de vectores  | `Vector2` para posición y velocidad; producto punto en el arco del tajo, knockback; reflexión de las flechas en el desvío (`v' = v − 2(v·n)n`) | Implementado              |
 | Movimiento rotacional | Arco del tajo, shuriken giratorio, sierras                                                                             | En curso (shuriken hecho) |
 | Tiro parabólico      | Shuriken y rocas del Oni                                                                                               | En curso (shuriken hecho) |
-| Perspectiva           | Parallax de fondo en varias capas                                                                                      | Pendiente                 |
+| Perspectiva           | Parallax de fondo en 6 capas (`x = -x_cámara · k`, capas en bucle)                                                     | Hecho (nivel 1)           |
 
 ## Tecnologías
 
@@ -176,7 +177,8 @@ RoninDeCeniza/
 - [X] Sierras giratorias (fijas y con riel): movimiento rotacional y colisión círculo contra caja
 - [X] Suelo de hielo (`~`) y plataformas móviles lineales y circulares (arrastre, empuje, momentum al saltar)
 - [X] Suelo de lodo (`=`): se camina a la mitad de velocidad y se salta más bajo (también frena a los zombis)
-- [ ] Nivel 1 completo con parallax y primer jefe
+- [X] Parallax del nivel 1 (6 capas, `F4` lo activa/desactiva); falta el fondo del nivel 2
+- [ ] Nivel 1 completo y primer jefe
 - [ ] Dash, menús y estados del juego, sonido
 - [ ] Nivel 2 y segundo jefe
 - [ ] Pruebas finales, manual de usuario y presentación
