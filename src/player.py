@@ -4,7 +4,8 @@ Ecuaciones usadas (por frame, con dt en segundos):
   v.x  -> se acerca a (dirección * RUN_SPEED) con aceleración; sin input, frena con fricción
   v.y += g * dt                 (gravedad, con velocidad terminal)
   pos  += v * dt                (en move_and_collide, por ejes y con subpasos)
-  dash -> v.x = dirección * DASH_SPEED durante 0,15 s; después la inercia se disipa con la fricción
+  dash -> v = dirección * DASH_SPEED durante 0,15 s; después la inercia se disipa con la fricción
+          con W + A/D la dirección es la diagonal (±1, -1)/raiz(2) y la rapidez DASH_DIAGONAL_SPEED
 
 Las acciones (attack, parry, throw, dash, hurt, death) duran lo mismo que su animación (S.ACTION_TIME).
 - attack: el arco del tajo hiere a los enemigos durante una ventana corta (ver combat.py).
@@ -35,6 +36,7 @@ class InputState:
     parry_pressed: bool = False
     throw_pressed: bool = False
     dash_pressed: bool = False
+    dash_up: bool = False        # W/flecha arriba mantenida: con A/D el dash sale en diagonal hacia arriba
     aim: tuple = None            # dirección del desvío (mouse o WASD con K); None = hacia donde mira. No gira al Ronin
 
 
@@ -52,6 +54,8 @@ class Player:
         self.action = None            # None, attack, parry, throw, dash, hurt o death
         self.action_time = 0.0
         self.dash_cooldown = 0.0
+        self.dash_dir = (1.0, 0.0)    # dirección unitaria del dash en curso
+        self.dash_speed = S.DASH_SPEED
         self.animator = None          # lo asigna Game cuando están cargados los sprites
         self._restart_anim = False
         self.health = S.PLAYER_MAX_HEALTH
@@ -110,11 +114,11 @@ class Player:
         away = -self.facing if source_x is None else (1 if self.center[0] >= source_x else -1)
         self.vel.update(away * S.HURT_KNOCKBACK[0], S.HURT_KNOCKBACK[1])
 
-    def take_damage(self, source_x=None):
-        """Pierde 1 corazón (si no es invulnerable). Devuelve True si el golpe contó."""
+    def take_damage(self, source_x=None, amount=1):
+        """Pierde `amount` corazones (si no es invulnerable). Devuelve True si el golpe contó."""
         if self.dead or self.invulnerable or self.iframes > 0:
             return False
-        self.health -= 1
+        self.health -= amount
         self.iframes = S.PLAYER_IFRAMES
         if self.health <= 0:
             self.health = 0
@@ -175,6 +179,7 @@ class Player:
         self.crouching = False
         self.action = None
         self.dash_cooldown = 0.0
+        self.dash_dir, self.dash_speed = (1.0, 0.0), S.DASH_SPEED
         self.iframes = S.PLAYER_IFRAMES
         self.pos.update(*spawn)
         self.vel.update(0, 0)
@@ -191,6 +196,9 @@ class Player:
         if self.action and not self.dead:
             self.action_time -= dt
             if self.action_time <= 0:
+                if self.action == "dash" and self.dash_dir[1] != 0:
+                    k = S.DASH_DIAGONAL_EXIT_KEEP          # el dash diagonal no deja planeando: conserva una parte
+                    self.vel.update(self.vel.x * k, self.vel.y * k)
                 if self.action == "parry" and not self.parry_reflected:
                     self.parry_lock = S.PARRY_LOCKOUT      # el desvío no tocó nada: queda inutilizable un rato
                 self.action = None
@@ -201,7 +209,14 @@ class Player:
         if inp.dash_pressed and self.dash_cooldown <= 0:
             self.start_action("dash")
             self.dash_cooldown = S.DASH_COOLDOWN
-            self.vel.x = self.facing * S.DASH_SPEED
+            if inp.dash_up and inp.move_x != 0:
+                # diagonal: la dirección unitaria es (±1, -1) / raiz(2) (hacia arriba y hacia donde se pulsa)
+                self.facing = 1 if inp.move_x > 0 else -1
+                k = 1 / math.sqrt(2)
+                self.dash_dir, self.dash_speed = (self.facing * k, -k), S.DASH_DIAGONAL_SPEED
+            else:
+                self.dash_dir, self.dash_speed = (float(self.facing), 0.0), S.DASH_SPEED
+            self.vel.update(self.dash_dir[0] * self.dash_speed, self.dash_dir[1] * self.dash_speed)
         elif inp.attack_pressed:
             self.start_action("attack")
         elif inp.parry_pressed and self.parry_lock <= 0:
@@ -247,7 +262,7 @@ class Player:
         # --- Horizontal: aceleración / fricción ---
         locked = self.action in ("dash", "hurt", "death")
         if self.action == "dash":
-            self.vel.x = self.facing * S.DASH_SPEED          # velocidad constante durante el impulso
+            self.vel.x = self.dash_dir[0] * self.dash_speed   # velocidad constante durante el impulso
         else:
             if self.on_ground:
                 accel = S.GROUND_ACCEL * level.grip
@@ -272,9 +287,9 @@ class Player:
             self.vel.y *= S.JUMP_CUT       # soltar antes = salto más corto
             self.jumping = False
 
-        # --- Gravedad (el dash es un impulso horizontal sin caída) ---
+        # --- Gravedad (el dash es un impulso en línea recta, sin caída) ---
         if self.action == "dash":
-            self.vel.y = 0.0
+            self.vel.y = self.dash_dir[1] * self.dash_speed
         else:
             self.vel.y = min(self.vel.y + level.gravity * dt, S.MAX_FALL_SPEED)
 

@@ -89,7 +89,9 @@ ENEMY_VARIANTS = {
     "caminante": ("aldeano", "samurai"),
     "corredor": ("campesino", "ashigaru"),
     "arquero": ("cazador", "kyudoka"),
+    "hinchado": ("sumo",),
 }
+ENEMY_FRAME_SIZE = {"hinchado": S.BLOATER_FRAME}          # el resto usa cuadros de SPRITE_FRAME x SPRITE_FRAME
 ENEMY_ANIMATIONS = {
     "caminante": {
         "walk": dict(fps=6, loop=True),
@@ -110,6 +112,12 @@ ENEMY_ANIMATIONS = {
         "hurt": dict(duration=S.ENEMY_ACTION_TIME["hurt"]),
         "death": dict(duration=S.ENEMY_ACTION_TIME["death"]),
     },
+    "hinchado": {
+        "walk": dict(fps=5, loop=True),
+        "inflate": dict(fps=5, loop=False),          # el cuadro lo marca el enemigo según lo que falta de la mecha
+        "hurt": dict(duration=S.ENEMY_ACTION_TIME["hurt"]),
+        "explode": dict(duration=S.BLOATER_EXPLODE_TIME),
+    },
 }
 
 
@@ -117,8 +125,9 @@ def load_enemy_animations(kind, variant):
     """Carga las hojas de una variante de zombi. Devuelve None si faltan (se dibuja un rectángulo)."""
     try:
         animations = {}
+        fw, fh = ENEMY_FRAME_SIZE.get(kind, (S.SPRITE_FRAME, S.SPRITE_FRAME))
         for name, spec in ENEMY_ANIMATIONS[kind].items():
-            frames = load_strip(S.SPRITES_DIR / "zombi" / kind / f"{variant}_{name}.png", S.SPRITE_FRAME, S.SPRITE_FRAME)
+            frames = load_strip(S.SPRITES_DIR / "zombi" / kind / f"{variant}_{name}.png", fw, fh)
             if "duration" in spec:
                 animations[name] = Animation(frames, len(frames) / spec["duration"], loop=False)
             else:

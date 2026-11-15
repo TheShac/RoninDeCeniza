@@ -14,7 +14,7 @@ DT = 1 / 60
 
 
 def jugador_en_suelo():
-    nivel = Level(S.LEVELS_DIR / "nivel1.txt")
+    nivel = Level(S.BASE_DIR / "tests" / "niveles" / "pruebas.txt")
     p = Player(*nivel.spawn)
     for _ in range(60):
         p.update(DT, InputState(), nivel)

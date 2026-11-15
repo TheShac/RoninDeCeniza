@@ -28,6 +28,10 @@ class Walker:
     ANIM_FOR_STATE = {"patrol": "walk", "chase": "walk", "attack": "attack", "hurt": "hurt", "dead": "death"}
     RESTART_STATES = ("attack", "hurt", "dead")
     AFTER_HURT = "patrol"                 # estado al que vuelve tras quedar herido sin morir
+    FRAME = (S.SPRITE_FRAME, S.SPRITE_FRAME)   # tamaño del cuadro de sprite
+    FEET_Y = S.SPRITE_FEET_Y                   # fila del cuadro donde apoyan los pies
+    FLIP = True                                # se voltea al mirar a la izquierda
+    blast = None                               # explosión pendiente {x, y, radius}; Game la recoge
 
     def __init__(self, variant, feet_x, feet_y, animations=None):
         self.variant = variant
@@ -141,7 +145,26 @@ class Walker:
         self._dt = dt
         self.state_time += dt
         self.cooldown = max(0.0, self.cooldown - dt)
+        self._state_logic(level, player)
 
+        self.vel.y = min(self.vel.y + level.gravity * dt, S.MAX_FALL_SPEED)
+        self.on_ground, self.hit_wall, _ = move_and_collide(self.pos, self.vel, self.size, level.solids, dt)
+        if self.hit_wall and self.state == "patrol":
+            self.facing = -self.facing
+            self.vel.x = 0.0
+        if self.pos.y > level.height + 300:
+            self.removable = True               # cayó al vacío
+
+        if self.animator:
+            self.animator.update(dt, self._anim_speed())
+            self._sync_animation()
+
+    def _sync_animation(self):
+        """Gancho: algunos enemigos fijan el cuadro a mano (el hinchado, según su mecha)."""
+
+    def _state_logic(self, level, player):
+        """Un paso de la máquina de estados (velocidades, ataques, cambios de estado)."""
+        dt = self._dt
         if self.state == "dead":
             self.vel.x = move_toward(self.vel.x, 0.0, S.GROUND_FRICTION * dt)
             if self.state_time > S.ENEMY_ACTION_TIME["death"] + S.CORPSE_TIME:
@@ -162,17 +185,6 @@ class Walker:
         else:
             self._think(player, level)
 
-        self.vel.y = min(self.vel.y + level.gravity * dt, S.MAX_FALL_SPEED)
-        self.on_ground, self.hit_wall, _ = move_and_collide(self.pos, self.vel, self.size, level.solids, dt)
-        if self.hit_wall and self.state == "patrol":
-            self.facing = -self.facing
-            self.vel.x = 0.0
-        if self.pos.y > level.height + 300:
-            self.removable = True               # cayó al vacío
-
-        if self.animator:
-            self.animator.update(dt, self._anim_speed())
-
     # ------------------------------------------------------------------ dibujo
     def draw(self, surface, camera):
         if self.animator is None:
@@ -180,10 +192,10 @@ class Walker:
             pygame.draw.rect(surface, (70, 90, 70), (x, y, self.size[0], self.size[1]))
             return
         frame = self.animator.frame
-        if self.facing < 0:
+        if self.facing < 0 and self.FLIP:
             frame = pygame.transform.flip(frame, True, False)
-        x = self.pos.x + self.size[0] / 2 - S.SPRITE_FRAME / 2 - camera.x
-        y = self.pos.y + self.size[1] - S.SPRITE_FEET_Y - camera.y
+        x = self.pos.x + self.size[0] / 2 - self.FRAME[0] / 2 - camera.x
+        y = self.pos.y + self.size[1] - self.FEET_Y - camera.y
         surface.blit(frame, (round(x), round(y)))
 
 
@@ -338,4 +350,103 @@ class Archer(Walker):
         return 1.0
 
 
-ENEMY_CLASSES = {"caminante": Walker, "corredor": Runner, "arquero": Archer}
+class Bloater(Walker):
+    """Zombi hinchado: un luchador de sumo enorme, lento y con mucha vida. No ataca: EXPLOTA.
+
+    patrol --(Ronin a la vista)--> chase --(Ronin a menos de BLOATER_TRIGGER)--> inflate --(mecha 1 s)--> dead (explota)
+    Si lo matan, se infla igual pero con una mecha corta (BLOATER_DEATH_FUSE): hay que alejarse, o matarlo de lejos
+    con shurikens. La explosión (ver combat.apply_blast) empuja con un impulso radial y daña a todo el que esté cerca,
+    incluidos otros zombis: sirve de arma. Los sprites son de frente, así que no se voltean.
+    """
+    SIZE = S.BLOATER_SIZE
+    HEALTH = S.BLOATER_HEALTH
+    FRAME = S.BLOATER_FRAME
+    FEET_Y = S.BLOATER_FEET_Y
+    FLIP = False
+    ANIM_FOR_STATE = {"patrol": "walk", "chase": "walk", "inflate": "inflate", "hurt": "hurt", "dead": "explode"}
+    RESTART_STATES = ("inflate", "hurt", "dead")
+
+    def __init__(self, variant, feet_x, feet_y, animations=None):
+        super().__init__(variant, feet_x, feet_y, animations)
+        self.fuse = 0.0                       # s que faltan para reventar (solo en "inflate")
+        self.doomed = False                   # ya no tiene vida: va a reventar sí o sí
+        self.blast = None
+
+    @property
+    def fuse_progress(self):
+        """0 recién encendido, 1 a punto de reventar."""
+        return 0.0 if self.state != "inflate" else max(0.0, min(1.0, 1.0 - self.fuse / S.BLOATER_FUSE))
+
+    def _ignite(self, fuse):
+        """Empieza a inflarse (o acorta la mecha si ya lo hacía)."""
+        if self.state != "inflate":
+            self._set_state("inflate")
+            self.fuse = S.BLOATER_FUSE
+        self.fuse = min(self.fuse, fuse)
+
+    def damage(self, amount, from_x):
+        if self.dead:
+            return False
+        self.health -= amount
+        away = 1 if self.center[0] >= from_x else -1
+        self.vel.x += away * S.BLOATER_KNOCKBACK
+        if self.health <= 0:
+            self.doomed = True
+            self._ignite(S.BLOATER_DEATH_FUSE)
+        elif self.state != "inflate":
+            self._set_state("hurt")
+        return True
+
+    def _explode(self):
+        self._set_state("dead")
+        self.vel.x = 0.0
+        self.blast = {"x": self.center[0], "y": self.center[1], "radius": S.BLAST_RADIUS}
+
+    def _state_logic(self, level, player):
+        dt = self._dt
+        if self.state == "dead":
+            self.vel.x = 0.0
+            if self.state_time >= S.BLOATER_EXPLODE_TIME:
+                self.removable = True
+        elif self.state == "inflate":
+            self.vel.x = move_toward(self.vel.x, 0.0, S.GROUND_FRICTION * dt)
+            self.fuse -= dt
+            if self.fuse <= 0:
+                self._explode()
+        elif self.state == "hurt":
+            self.vel.x = move_toward(self.vel.x, 0.0, S.GROUND_FRICTION * 0.5 * dt)
+            if self.state_time >= S.ENEMY_ACTION_TIME["hurt"]:
+                self._set_state(self.AFTER_HURT)
+        else:
+            self._think(player, level)
+
+    def _think(self, player, level):
+        dx, dy = player.center[0] - self.center[0], player.center[1] - self.center[1]
+        sees = (not player.dead and dx * dx + dy * dy <= S.BLOATER_SIGHT ** 2 and abs(dy) <= S.WALKER_SIGHT_DY)
+        if not sees:
+            if self.state != "patrol":
+                self._set_state("patrol")
+            self._walk(level, S.BLOATER_PATROL_SPEED, False)
+            return
+        if self.state != "chase":
+            self._set_state("chase")
+        if dx != 0:
+            self.facing = 1 if dx > 0 else -1
+        gap = abs(dx) - (self.size[0] + player.size[0]) / 2
+        if gap <= S.BLOATER_TRIGGER and abs(dy) <= S.BLOATER_TRIGGER_DY:
+            self._ignite(S.BLOATER_FUSE)
+            return
+        self._walk(level, S.BLOATER_CHASE_SPEED, True)
+
+    def _anim_speed(self):
+        if self.state in ("patrol", "chase"):
+            return max(0.3, abs(self.vel.x) / S.BLOATER_PATROL_SPEED)
+        return 1.0
+
+    def _sync_animation(self):
+        if self.state == "inflate":                      # el cuadro sigue a la mecha, no al reloj
+            anim = self.animator.animations["inflate"]
+            self.animator.time = self.fuse_progress * 0.999 * len(anim.frames) / anim.fps
+
+
+ENEMY_CLASSES = {"caminante": Walker, "corredor": Runner, "arquero": Archer, "hinchado": Bloater}

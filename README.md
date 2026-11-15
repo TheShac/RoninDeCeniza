@@ -53,11 +53,12 @@ El ronin, un samurái sin señor que lleva años vagando por los caminos, regres
 | Clic izquierdo o `J`             | Tajo hacia donde mira el Ronin (hiere en un arco de 120°; el mouse no lo cambia) |
 | Clic derecho o `K`               | Desvío. Clic derecho: la flecha sale hacia el cursor. `K`: hacia la dirección de WASD que mantengas (por defecto, hacia donde mira) |
 | `E`                              | Lanzar shuriken                                                                   |
-| `Shift`                          | Dash                                                                              |
+| `Shift`                          | Dash. Con `W` + `A`/`D` mantenidas sale en diagonal hacia arriba (llega más lejos) |
 | `Esc`                            | Salir (la pausa vendrá con los menús)                                           |
 | `R`                              | Reiniciar nivel                                                                   |
 | `F1`                             | Modo debug (con él: `F2` golpe de prueba, `F3` muerte)                       |
-| `1` a `6`                        | Solo en el nivel de pruebas: genera delante del Ronin un zombi (1-2 caminantes, 3-4 corredores, 5-6 arqueros) |
+| `F11`                            | Pantalla completa (alterna)                                                      |
+| `1` a `7`                        | Solo en el nivel de pruebas: genera delante del Ronin un zombi (1-2 caminantes, 3-4 corredores, 5-6 arqueros, 7 hinchado) |
 
 Notas sobre los controles:
 - El Ronin siempre mira hacia donde se mueve (`A`/`D`). El mouse no lo gira: el tajo y el shuriken salen hacia donde mira. Solo el desvío tiene dirección propia.
@@ -103,12 +104,38 @@ con `Ctrl+Shift+P` > "Python: Select Interpreter".
 
 La carpeta `.venv` no se versiona: cada equipo crea la suya a partir de `requirements.txt`.
 
+### Tamaño de la ventana
+
+Por defecto la ventana ocupa tu pantalla (descontando las barras de título y de tareas). Se cambia en `config.json`:
+
+```json
+{
+  "ancho": "auto",
+  "alto": "auto",
+  "pantalla_completa": false
+}
+```
+
+- `ancho` y `alto`: píxeles (por ejemplo `1280` y `720`) o `"auto"`. Se pueden fijar por separado. El mínimo es 480x270.
+- `pantalla_completa`: `true` para abrir a pantalla completa. `F11` lo alterna dentro del juego.
+- La ventana también se puede redimensionar con el mouse.
+- El juego se dibuja siempre en un lienzo de 960x544 y se escala a la ventana **sin deformarse** (si la proporción no
+  coincide quedan barras negras). Así la jugabilidad es idéntica en cualquier tamaño.
+- Si `config.json` falta o está mal escrito, se usan los valores por defecto.
+
+### Galería de animaciones
+
+`python tools/ver_animaciones.py` (Ronin) o `python tools/ver_animaciones.py zombi` (una fila por variante) muestran
+todas las animaciones en bucle. La ventana nunca supera el tamaño de tu pantalla: si no caben, se desplaza con la rueda
+del mouse, las flechas arriba/abajo, `RePág`/`AvPág` o `Inicio`/`Fin`.
+
 ### Pruebas
 
 ```powershell
 python -m unittest discover -s tests -v
 ```
 
+Las pruebas usan su propio nivel fijo (`tests/niveles/pruebas.txt`), así que se puede editar `levels/nivel1.txt` sin romperlas.
 Las pruebas verifican gravedad, altura del salto, frenado, hielo, colisiones a alta velocidad y
 tiempo de gracia del salto (coyote time).
 
@@ -116,12 +143,12 @@ tiempo de gracia del salto (coyote time).
 
 ```
 RoninDeCeniza/
-  src/          código fuente (main, game, controls, player, enemy, combat, projectile, animation, level, camera, physics, settings)
+  src/          código fuente (main, game, config, controls, player, enemy, combat, projectile, animation, level, camera, physics, settings)
   tests/        pruebas de la física, las animaciones, el combate y los enemigos
   tools/        generadores de sprites (Ronin y zombis) y galería de animaciones
   levels/       mapas de los niveles (.txt)
   assets/
-    images/     sprites: ronin/ y zombi/<tipo>/ (caminante, corredor, arquero), una hoja por animación
+    images/     sprites: ronin/ y zombi/<tipo>/ (caminante, corredor, arquero, hinchado), una hoja por animación
     sounds/     efectos y música
   docs/         documentación de diseño (protagonista y enemigos)
   requirements.txt
@@ -145,6 +172,7 @@ RoninDeCeniza/
 - [X] Tajo con arco de daño, zombi caminante (aldeano y samurái), vida en corazones y knockback
 - [X] Zombi corredor (campesino y ashigaru) con embestida acelerada y aturdimiento
 - [X] Flechas, zombi arquero (cazador y kyudoka), desvío con reflexión de vectores y shuriken
+- [X] Zombi hinchado (luchador de sumo): se infla y explota con impulso radial y reacción en cadena
 - [ ] Nivel 1 completo con parallax y primer jefe
 - [ ] Dash, menús y estados del juego, sonido
 - [ ] Nivel 2 y segundo jefe

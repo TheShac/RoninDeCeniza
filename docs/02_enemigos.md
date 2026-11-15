@@ -26,7 +26,7 @@ cualquier estado --(golpe recibido)--> AGOTADO (breve) o MUERTO
 | Zombi caminante | 1 | Lento, velocidad constante (MRU) | Zarpazo al contacto | 1 y 2 | A |
 | Zombi corredor | 1 | Acelera al ver al jugador (MRUA) y se desliza al frenar | Embestida | 1 y 2 | A |
 | Zombi arquero | 2 | Casi estático en plataformas altas; retrocede si el jugador se acerca | Flechas rectas, desviables | 1 y 2 | A |
-| Zombi hinchado | 3 | Muy lento y pesado | Explota al morir | 2 | B |
+| Zombi hinchado | 3 | Muy lento y pesado | Se infla y explota (impulso radial) | 2 | B |
 
 ### Zombi caminante
 - Patrulla a 60 px/s y persigue a 90 px/s si el jugador está a menos de 220 px y a una altura parecida (máx. 90 px de diferencia).
@@ -74,9 +74,20 @@ cualquier estado --(golpe recibido)--> AGOTADO (breve) o MUERTO
 **Flecha (`Arrow`)**: se mueve en línea recta con `pos += v · dt`, se clava en los bloques y desaparece a los 3 s. Se dibuja orientada según su velocidad. Una flecha devuelta cambia de dueño: deja de herir al Ronin, hiere a cualquier enemigo que toque (2 de daño) y sale un 25 % más rápida.
 
 ### Zombi hinchado
-- Camina a 40 px/s. Al morir explota: radio de 96 px, 1 de daño y un impulso radial.
-- Impulso de la explosión: `J = k * normalizar(jugador - centro)` con `k = 600 px/s`, que disminuye con la distancia. También daña a otros zombis.
-- Cómo vencerlo: shuriken desde lejos o un tajo seguido de alejarse rápidamente.
+- Es un **luchador de sumo zombi**: enorme (hitbox de 60x62 px, el sprite mide 160x128), pálido, con tatuajes de **higanbana** (la flor de la muerte), sangre, piel desgarrada, pantalón blanco ancho, faja roja y moño. No ataca: **explota**.
+- **3 de vida** y muy lento (30 px/s patrullando, 48 px/s persiguiendo; ve al Ronin a 260 px). Un golpe casi no lo mueve (60 px/s de retroceso).
+- Estados: `patrol` → `chase` → `inflate` → `dead` (explosión). Si el Ronin queda a menos de 34 px de separación, **se infla durante 1 s** (se queda quieto, tiembla, las heridas se ponen al rojo vivo) y revienta. La mecha sigue aunque el Ronin se aleje: ya no se puede cancelar.
+- **Si lo matan** (3 golpes) también explota, pero con una mecha corta de 0,45 s para que dé tiempo de huir. Si ya estaba inflándose, la mecha solo se acorta, nunca se alarga. Un golpe que no lo mata no interrumpe la mecha.
+- **Explosión** (`apply_blast` y `blast_push` en `src/combat.py`): radio de **110 px**. Para un objetivo a distancia `r` del centro:
+  - `falloff = 1 - r / radio` (1 en el centro, 0 en el borde)
+  - dirección `n = normalizar(d + (0, -0,6 · r))`, o sea radial con un empujón hacia arriba
+  - impulso `Δv = 560 px/s · falloff · n`, que se suma a la velocidad (después actúan la gravedad y la fricción)
+- Daño: **2 corazones al Ronin** y **3 a los otros zombis** (mata a cualquiera, incluso a otro hinchado: **reacción en cadena**). El Ronin invulnerable (durante el dash o tras un golpe) esquiva el daño, pero no el empuje.
+- Cómo vencerlo: **shuriken desde lejos** (3 impactos), usar su explosión contra otros zombis, o un tajo seguido de alejarse (o hacer dash) antes de que reviente.
+- Animaciones (`assets/images/zombi/hinchado/sumo_<animación>.png`, cuadros de 160x128, de frente: no se voltean): `idle` (4), `walk` (6), `inflate` (5, el cuadro sigue a la mecha), `explode` (5, dura 0,6 s) y `hurt` (2). No hay `death`: morir es explotar.
+- En el nivel de pruebas se coloca con la letra `H` o con la tecla `7`. Con `F1` se ve el radio de la explosión mientras se infla.
+
+![Animaciones del zombi hinchado](img/zombi_hinchado.png)
 
 ## Peligros del escenario
 
@@ -111,11 +122,11 @@ Los enemigos pueden soltar corazones o shuriken (aprox. 20 %). Los jefes sueltan
 
 | Elemento | Estado |
 |---|---|
-| Máquina de estados y detección | Hecho para el caminante, el corredor y el arquero |
+| Máquina de estados y detección | Hecho para el caminante, el corredor, el arquero y el hinchado |
 | Zombi caminante (aldeano y samurái) | Hecho |
 | Zombi corredor (campesino y ashigaru) | Hecho |
 | Zombi arquero (cazador y kyudoka) y flechas | Hecho |
-| Zombi hinchado | Pendiente |
+| Zombi hinchado (sumo) y explosión radial | Hecho |
 | Sierras y plataformas móviles | Pendiente |
 | Samurái Caído (jefe) | Pendiente |
 | Oni | Pendiente |

@@ -1,4 +1,5 @@
 """Pruebas de las acciones del Ronin: agacharse, dash, ataque, daño y muerte."""
+import math
 import sys
 import unittest
 from pathlib import Path
@@ -17,7 +18,7 @@ DT = 1 / 60
 
 
 def jugador_en_suelo():
-    nivel = Level(S.LEVELS_DIR / "nivel1.txt")
+    nivel = Level(S.BASE_DIR / "tests" / "niveles" / "pruebas.txt")
     p = Player(*nivel.spawn)
     for _ in range(60):
         p.update(DT, InputState(), nivel)
@@ -96,6 +97,133 @@ class TestDash(unittest.TestCase):
         y = p.pos.y
         correr(p, nivel, 0.1)
         self.assertAlmostEqual(p.pos.y, y, places=3)
+
+
+class TestDashDiagonal(unittest.TestCase):
+    """W + A/D + Shift: el dash sale en diagonal hacia arriba, con más alcance que el horizontal."""
+    K = 1 / math.sqrt(2)
+
+    def test_la_diagonal_a_la_derecha_sube_y_avanza_por_igual(self):
+        nivel, p = jugador_en_suelo()
+        p.update(DT, InputState(dash_pressed=True, dash_up=True, move_x=1), nivel)
+        self.assertEqual(p.state, "dash")
+        self.assertEqual(p.facing, 1)
+        self.assertAlmostEqual(p.vel.x, S.DASH_DIAGONAL_SPEED * self.K, places=3)
+        self.assertAlmostEqual(p.vel.y, -S.DASH_DIAGONAL_SPEED * self.K, places=3)
+        self.assertAlmostEqual(math.hypot(p.vel.x, p.vel.y), S.DASH_DIAGONAL_SPEED, places=3)
+
+    def test_la_diagonal_a_la_izquierda_es_el_espejo(self):
+        nivel, p = jugador_en_suelo()
+        p.update(DT, InputState(dash_pressed=True, dash_up=True, move_x=-1), nivel)
+        self.assertEqual(p.facing, -1)
+        self.assertAlmostEqual(p.vel.x, -S.DASH_DIAGONAL_SPEED * self.K, places=3)
+        self.assertAlmostEqual(p.vel.y, -S.DASH_DIAGONAL_SPEED * self.K, places=3)
+
+    def test_apunta_donde_se_pulsa_aunque_mirara_al_otro_lado(self):
+        nivel, p = jugador_en_suelo()
+        p.facing = -1
+        p.update(DT, InputState(dash_pressed=True, dash_up=True, move_x=1), nivel)
+        self.assertEqual(p.facing, 1)
+        self.assertGreater(p.vel.x, 0)
+
+    def test_sin_w_o_sin_direccion_sigue_siendo_horizontal(self):
+        for kw in (dict(move_x=1), dict(dash_up=True), dict()):
+            nivel, p = jugador_en_suelo()
+            p.update(DT, InputState(dash_pressed=True, **kw), nivel)
+            self.assertAlmostEqual(p.vel.x, S.DASH_SPEED * p.facing, places=3, msg=str(kw))
+            self.assertEqual(p.vel.y, 0.0, msg=str(kw))
+
+    def test_recorre_mas_que_el_dash_horizontal(self):
+        nivel, p = jugador_en_suelo()
+        p0 = (p.pos.x, p.pos.y)
+        p.update(DT, InputState(dash_pressed=True, dash_up=True, move_x=1), nivel)
+        for _ in range(int(S.ACTION_TIME["dash"] / DT) - 1):
+            p.update(DT, InputState(), nivel)
+        diagonal = math.hypot(p.pos.x - p0[0], p.pos.y - p0[1])
+        nivel2, q = jugador_en_suelo()
+        q0 = q.pos.x
+        q.update(DT, InputState(dash_pressed=True), nivel2)
+        for _ in range(int(S.ACTION_TIME["dash"] / DT) - 1):
+            q.update(DT, InputState(), nivel2)
+        horizontal = q.pos.x - q0
+        self.assertGreater(diagonal, horizontal)
+        self.assertAlmostEqual(diagonal, S.DASH_DIAGONAL_SPEED * S.ACTION_TIME["dash"], delta=12)
+        self.assertGreater(p.pos.x - p0[0], 40)               # avanza
+        self.assertGreater(p0[1] - p.pos.y, 40)               # y sube
+
+    def test_sin_gravedad_durante_el_dash_y_con_gravedad_despues(self):
+        nivel, p = jugador_en_suelo()
+        p.update(DT, InputState(dash_pressed=True, dash_up=True, move_x=1), nivel)
+        for _ in range(int(S.ACTION_TIME["dash"] / DT) - 2):
+            p.update(DT, InputState(), nivel)
+            self.assertAlmostEqual(p.vel.y, -S.DASH_DIAGONAL_SPEED * self.K, places=3)
+        for _ in range(4):
+            p.update(DT, InputState(), nivel)
+        self.assertIsNone(p.action)
+        self.assertLess(abs(p.vel.y), S.DASH_DIAGONAL_SPEED * self.K)   # ya perdió velocidad (salida + gravedad)
+
+    def test_al_terminar_conserva_solo_una_parte_de_la_velocidad(self):
+        nivel, p = jugador_en_suelo()
+        p.update(DT, InputState(dash_pressed=True, dash_up=True, move_x=1), nivel)
+        while p.action == "dash":
+            p.update(DT, InputState(), nivel)
+        self.assertLess(p.vel.x, S.DASH_DIAGONAL_SPEED * self.K * 0.6)
+        self.assertGreater(p.vel.x, 0)
+
+    def test_no_planea_lejos_despues_del_dash(self):
+        nivel, p = jugador_en_suelo()
+        p0 = p.pos.x
+        p.update(DT, InputState(dash_pressed=True, dash_up=True, move_x=1), nivel)
+        correr(p, nivel, 1.5)
+        self.assertLess(p.pos.x - p0, 260)                    # el dash normal en el aire llegaría muchísimo más
+
+    def test_es_invulnerable_durante_el_dash_diagonal(self):
+        nivel, p = jugador_en_suelo()
+        p.update(DT, InputState(dash_pressed=True, dash_up=True, move_x=1), nivel)
+        self.assertTrue(p.invulnerable)
+        self.assertFalse(p.take_damage(0))
+
+    def test_respeta_la_recarga(self):
+        nivel, p = jugador_en_suelo()
+        p.update(DT, InputState(dash_pressed=True, dash_up=True, move_x=1), nivel)
+        correr(p, nivel, S.ACTION_TIME["dash"] + 0.05)
+        p.update(DT, InputState(dash_pressed=True, dash_up=True, move_x=1), nivel)
+        self.assertIsNone(p.action)
+
+    def test_el_dash_horizontal_despues_de_uno_diagonal_vuelve_a_ser_horizontal(self):
+        nivel, p = jugador_en_suelo()
+        p.update(DT, InputState(dash_pressed=True, dash_up=True, move_x=1), nivel)
+        correr(p, nivel, S.DASH_COOLDOWN + 1.5)
+        for _ in range(60):
+            p.update(DT, InputState(), nivel)
+        p.update(DT, InputState(dash_pressed=True), nivel)
+        self.assertEqual(p.vel.y, 0.0)
+        self.assertAlmostEqual(p.vel.x, S.DASH_SPEED * p.facing, places=3)
+
+    def test_un_techo_detiene_la_subida(self):
+        nivel, p = jugador_en_suelo()
+        # bajo la plataforma de la fila 12 (y = 384..416): la cabeza queda a pocos px del techo
+        p.pos.update(450.0, 480.0 - p.size[1])
+        for _ in range(20):
+            p.update(DT, InputState(), nivel)
+        p.update(DT, InputState(dash_pressed=True, dash_up=True, move_x=1), nivel)
+        bajo_el_techo = 0
+        for _ in range(12):
+            p.update(DT, InputState(), nivel)
+            if p.pos.x < 544.0:                                # mientras sigue bajo la plataforma (x de 384 a 544)
+                bajo_el_techo += 1
+                self.assertGreaterEqual(p.pos.y, 416.0 - 1e-6)     # nunca entra en el bloque
+        self.assertGreater(bajo_el_techo, 5)                   # y el chequeo realmente se ejerció
+
+    def test_el_diagonal_tambien_sale_en_el_aire(self):
+        nivel, p = jugador_en_suelo()
+        p.pos.update(p.pos.x, p.pos.y - 150)
+        for _ in range(3):
+            p.update(DT, InputState(), nivel)
+        p.update(DT, InputState(dash_pressed=True, dash_up=True, move_x=-1), nivel)
+        self.assertEqual(p.state, "dash")
+        self.assertLess(p.vel.x, 0)
+        self.assertLess(p.vel.y, 0)
 
 
 class TestCombate(unittest.TestCase):

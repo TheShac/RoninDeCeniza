@@ -44,6 +44,8 @@ ACTION_SPEED_MULT = 0.5   # mientras ataca, desvía o lanza, se camina a la mita
 ACTION_TIME = {"attack": 0.30, "parry": 0.35, "throw": 0.30, "dash": 0.15, "hurt": 0.40, "death": 0.80}
 DASH_SPEED = 650.0        # px/s durante el dash
 DASH_COOLDOWN = 1.0       # s entre dashes
+DASH_DIAGONAL_SPEED = 800.0       # px/s del dash en diagonal (W + A/D + Shift): llega más lejos que el horizontal
+DASH_DIAGONAL_EXIT_KEEP = 0.35    # al terminar el dash diagonal conserva este % de la velocidad (evita planear lejos)
 HURT_KNOCKBACK = (200.0, -280.0)   # impulso al recibir un golpe (hacia atrás y arriba)
 
 # --- Shuriken (tiro parabólico + rotación) ---
@@ -92,6 +94,29 @@ RUNNER_BRAKE = 1400.0        # px/s^2 de frenado por fricción al terminar la em
 RUNNER_CHARGE_DIST = 420.0   # px máximos que recorre una embestida
 RUNNER_STUN = 0.8            # s aturdido si la embestida falla
 RUNNER_COOLDOWN = 1.2        # s antes de poder embestir de nuevo
+
+# --- Zombi hinchado (luchador de sumo): lento, se infla y explota ---
+BLOATER_SIZE = (60, 62)         # cabe bajo una plataforma a 2 casillas del suelo (64 px)
+BLOATER_FRAME = (160, 128)   # sus cuadros son más grandes que los 96x96 del resto
+BLOATER_FEET_Y = 124         # fila del cuadro donde apoyan los pies
+BLOATER_HEALTH = 3
+BLOATER_PATROL_SPEED = 30.0
+BLOATER_CHASE_SPEED = 48.0
+BLOATER_SIGHT = 260.0        # px de visión
+BLOATER_TRIGGER = 34.0       # px de separación entre cajas a los que empieza a inflarse
+BLOATER_TRIGGER_DY = 50.0
+BLOATER_FUSE = 1.0           # s inflándose antes de reventar
+BLOATER_DEATH_FUSE = 0.45    # s que tarda en reventar si lo matan (da tiempo de alejarse)
+BLOATER_EXPLODE_TIME = 0.6   # s de animación de la explosión
+BLOATER_KNOCKBACK = 60.0     # px/s: pesa mucho, casi no retrocede
+
+# --- Explosión (impulso radial) ---
+BLAST_RADIUS = 110.0         # px
+BLAST_IMPULSE = 560.0        # px/s de velocidad que recibe en el centro; baja linealmente hasta 0 en el borde
+BLAST_LIFT = 0.6             # componente hacia arriba que se suma a la dirección radial
+BLAST_PLAYER_DAMAGE = 2      # corazones que quita al Ronin
+BLAST_ENEMY_DAMAGE = 3       # daño a otros zombis (mata a todos, incluso a otro hinchado: reacción en cadena)
+BLAST_RING_TIME = 0.35       # s que dura el anillo visual
 
 # --- Desvío (parry) ---
 PARRY_WINDOW = (0.05, 0.25)  # s del desvío durante los que la hoja devuelve proyectiles

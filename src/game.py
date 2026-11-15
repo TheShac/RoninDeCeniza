@@ -6,7 +6,8 @@ import pygame
 import settings as S
 from animation import Animator, ENEMY_VARIANTS, load_ronin_animations, load_enemy_animations
 from camera import Camera
-from combat import resolve_combat
+from combat import apply_blast, resolve_combat
+from config import fit, load_config, to_logical, window_size
 from controls import jump_pressed, keyboard_aim, mouse_aim
 from enemy import ENEMY_CLASSES
 from level import Level
@@ -38,13 +39,23 @@ SPAWN_KEYS = {
     pygame.K_4: ("corredor", "ashigaru"),
     pygame.K_5: ("arquero", "cazador"),
     pygame.K_6: ("arquero", "kyudoka"),
+    pygame.K_7: ("hinchado", "sumo"),
 }
 
 
 class Game:
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((S.WIDTH, S.HEIGHT))
+        cfg = load_config(S.BASE_DIR / "config.json")
+        try:
+            desktop = pygame.display.get_desktop_sizes()[0]
+        except (AttributeError, IndexError, pygame.error):
+            desktop = (S.WIDTH, S.HEIGHT)
+        self.window_size = window_size(cfg, desktop)         # tamaño de la ventana (configurable en config.json)
+        self.fullscreen = bool(cfg["pantalla_completa"])
+        self._open_window()
+        self.screen = pygame.Surface((S.WIDTH, S.HEIGHT))    # lienzo lógico: se escala a la ventana al presentar
+        self.view_scale, self.view_offset = 1.0, (0, 0)
         pygame.display.set_caption("Ronin de Ceniza")
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font(None, 22)
@@ -57,12 +68,35 @@ class Game:
         self.death_timer = 0.0
         self.load_level(self.level_path)
 
+    def _open_window(self):
+        if self.fullscreen:
+            pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        else:
+            pygame.display.set_mode(self.window_size, pygame.RESIZABLE)
+
+    def toggle_fullscreen(self):
+        self.fullscreen = not self.fullscreen
+        self._open_window()
+
+    def present(self):
+        """Escala el lienzo lógico a la ventana (manteniendo la proporción, centrado) y lo muestra."""
+        window = pygame.display.get_surface()
+        scale, size, offset = fit(window.get_size(), (S.WIDTH, S.HEIGHT))
+        self.view_scale, self.view_offset = scale, offset
+        window.fill(S.INK)                                   # barras si la proporción no coincide
+        if size == (S.WIDTH, S.HEIGHT):
+            window.blit(self.screen, offset)
+        else:
+            window.blit(pygame.transform.smoothscale(self.screen, size), offset)
+        pygame.display.flip()
+
     def load_level(self, path):
         self.level_path = path
         self.level = Level(path)
         self.player = Player(*self.level.spawn)
         self.projectiles = []
         self.sparks = []                      # chispas del desvío: (x, y, tiempo restante)
+        self.rings = []                       # anillos de explosión: (x, y, radio, tiempo restante)
         self.death_timer = 0.0
         self.enemies = [ENEMY_CLASSES[k](v, x, y, self.enemy_animations.get((k, v))) for k, v, x, y in self.level.enemy_spawns]
         if self.ronin_animations:
@@ -109,6 +143,8 @@ class Game:
                     self.running = False          # más adelante: menú de pausa
                 elif event.key == pygame.K_F1:
                     self.debug = not self.debug
+                elif event.key == pygame.K_F11:
+                    self.toggle_fullscreen()
                 elif event.key == pygame.K_F2 and self.debug:
                     # golpe de prueba: pasa por take_damage, así respeta la invulnerabilidad como uno real
                     self.player.take_damage(self.player.center[0] + self.player.facing * 40)
@@ -120,6 +156,8 @@ class Game:
                     self.load_level(self.level_path)
                 elif event.key in KEY_ACTION:
                     pressed.add(KEY_ACTION[event.key])
+            elif event.type == pygame.VIDEORESIZE and not self.fullscreen:
+                self.window_size = (event.w, event.h)         # recuerda el tamaño para volver de pantalla completa
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     pressed.add("attack")
@@ -140,7 +178,7 @@ class Game:
         up, down = held("up"), held("down")
         aim = None
         if "parry_mouse" in pressed:                          # clic derecho: hacia el cursor (el mouse no gira al Ronin)
-            mx, my = pygame.mouse.get_pos()
+            mx, my = to_logical(pygame.mouse.get_pos(), self.view_scale, self.view_offset)
             aim = mouse_aim(self.player.slash_origin, (mx + self.camera.x, my + self.camera.y))
         elif "parry" in pressed:                              # tecla K: hacia donde indiquen las teclas WASD
             aim = keyboard_aim(move_x, up, down)
@@ -148,7 +186,7 @@ class Game:
             move_x=move_x, jump_pressed=jump_pressed(pressed), jump_held=bool(held("jump") or up),
             crouch=bool(down),
             attack_pressed="attack" in pressed, parry_pressed="parry" in pressed,
-            throw_pressed="throw" in pressed, dash_pressed="dash" in pressed, aim=aim)
+            throw_pressed="throw" in pressed, dash_pressed="dash" in pressed, dash_up=bool(up), aim=aim)
 
     def update(self, dt, inp):
         self.last_actions_time = max(0.0, self.last_actions_time - dt)
@@ -164,6 +202,11 @@ class Game:
             enemy.update(dt, self.level, self.player)
             self.projectiles.extend(enemy.new_projectiles)         # flechas recién disparadas
             enemy.new_projectiles.clear()
+            if enemy.blast:                                        # explosión del hinchado: impulso radial
+                blast, enemy.blast = enemy.blast, None
+                apply_blast(blast, self.player, [e for e in self.enemies if e is not enemy])
+                self.rings.append((blast["x"], blast["y"], blast["radius"], S.BLAST_RING_TIME))
+        self.rings = [(x, y, r, t - dt) for x, y, r, t in self.rings if t - dt > 0]
         self.enemies = [e for e in self.enemies if not e.removable]
         self.projectiles = [s for s in self.projectiles if s.alive]
         if self.player.dead:                      # reinicia el nivel poco después de morir
@@ -189,10 +232,15 @@ class Game:
                                                         cy + r * math.sin(k * math.pi / 4) * (1 if k % 2 == 0 else 0.35))
                                                        for k in range(8)])
             pygame.draw.circle(self.screen, S.RED, (round(cx), round(cy)), 4)
+        for x, y, r, t in self.rings:                              # anillo de la explosión: se expande y se apaga
+            p = 1.0 - t / S.BLAST_RING_TIME
+            radius = max(2, round(r * p ** 0.5))
+            pygame.draw.circle(self.screen, S.RED, (round(x - self.camera.x), round(y - self.camera.y)), radius,
+                               max(1, round(6 * (1 - p))))
         self.draw_hud()
         if self.debug:
             self.draw_debug()
-        pygame.display.flip()
+        self.present()
 
     def draw_text(self, text, x, y, color=S.GREY):
         self.screen.blit(self.font.render(text, True, color), (x, y))
@@ -210,12 +258,12 @@ class Game:
 
     def draw_hud(self):
         self.draw_hearts()
-        self.draw_text("A/D mover | W saltar | S agacharse | Shift dash | Esc salir", 10, 8)
+        self.draw_text("A/D mover | W saltar | S agacharse | Shift dash (con W + A/D: en diagonal) | Esc salir", 10, 8)
         if self.player.dead:
             self.draw_text("Has caido... reiniciando", S.WIDTH // 2 - 90, S.HEIGHT // 2, S.RED)
         self.draw_text("Clic izq o J tajo | Clic der (hacia el cursor) o K desvio | E shuriken | F1 debug | R reiniciar", 10, 26)
         if self.level.test_mode:
-            self.draw_text("MODO PRUEBAS: 1-2 caminantes | 3-4 corredores | 5-6 arqueros", 10, 44, S.RED)
+            self.draw_text("MODO PRUEBAS: 1-2 caminantes | 3-4 corredores | 5-6 arqueros | 7 hinchado", 10, 44, S.RED)
 
     def draw_debug(self):
         p, cam = self.player, self.camera
@@ -236,6 +284,9 @@ class Game:
             ex, ey, ew, eh = e.rect
             pygame.draw.rect(self.screen, S.RED, (int(ex - cam.x), int(ey - cam.y), ew, eh), 1)
             self.draw_text(e.state, int(ex - cam.x), int(ey - cam.y) - 14, S.RED)
+            if e.state == "inflate":                       # radio de la explosión que viene
+                pygame.draw.circle(self.screen, S.RED, (round(e.center[0] - cam.x), round(e.center[1] - cam.y)),
+                                   round(S.BLAST_RADIUS), 1)
         keys = pygame.key.get_pressed()
         mantenidas = sorted({pygame.key.name(k).upper() for ks in KEYMAP.values() for k in ks if keys[k]})
         recibidas = ", ".join(self.last_actions) if self.last_actions_time > 0 else "-"

@@ -19,7 +19,7 @@ SUELO = 15 * S.TILE
 
 
 def nuevo():
-    lv = Level(S.LEVELS_DIR / "nivel1.txt")
+    lv = Level(S.BASE_DIR / "tests" / "niveles" / "pruebas.txt")
     p = Player(300, SUELO - S.PLAYER_SIZE[1])
     for _ in range(30):
         p.update(DT, InputState(), lv)

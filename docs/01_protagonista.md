@@ -66,8 +66,9 @@ Estado: implementados el movimiento, agacharse, el dash y el shuriken (con su tr
 
 ### Dash (Shift)
 - Impulso horizontal de 650 px/s durante 0,15 s, con invulnerabilidad en ese lapso.
+- **Dash en diagonal:** con `W` (o flecha arriba) + `A`/`D` mantenidas, `Shift` lanza el dash hacia arriba y hacia el lado pulsado. La dirección es el vector unitario `(±1, -1)/√2` y la rapidez sube a 800 px/s (`DASH_DIAGONAL_SPEED`), así que recorre unos 120 px en línea recta (el horizontal, 97 px). Sin gravedad durante el impulso, igual de invulnerable y con la misma recarga; se puede usar en el suelo o en el aire, y un techo lo detiene. Al terminar conserva solo el 35 % de la velocidad (`DASH_DIAGONAL_EXIT_KEEP`) para que no salga planeando lejos. Sin `W` o sin dirección lateral, el dash es el horizontal de siempre.
 - Recarga de 1 s. Al terminar el impulso, la inercia se disipa con la fricción del suelo (más larga en hielo).
-- Física: momentum, inercia y fricción.
+- Física: momentum, inercia y fricción; el dash diagonal además descompone la velocidad en sus componentes `v·cos 45°` y `v·sen 45°`.
 
 ### Agacharse (S)
 - Reduce la hitbox de 58 a 40 px de alto (los pies no se mueven) y la velocidad al 40 %. Solo se levanta si hay espacio sobre la cabeza. Permite pasar bajo proyectiles altos y bajo obstáculos bajos.
@@ -126,7 +127,7 @@ informe como aplicación de **trigonometría y movimiento rotacional**.
 - Los sprites miran a la derecha y se voltean al mirar a la izquierda.
 - Los pies del dibujo se alinean con el borde inferior de la hitbox. En el modo debug (F1) se ve la hitbox sobre el sprite.
 
-**Ver las animaciones sin jugar:** `python tools/ver_animaciones.py` abre una galería con todas en bucle.
+**Ver las animaciones sin jugar:** `python tools/ver_animaciones.py` abre una galería con todas en bucle (con scroll si no caben en la pantalla; `python tools/ver_animaciones.py zombi` para los zombis, una fila por variante).
 
 **Cambiar el arte.** Para usar dibujos propios basta reemplazar los PNG por tiras con el mismo nombre y cuadros
 de 96 x 96 px, con los pies en la fila 90. Para regenerar los actuales: `pip install -r requirements-dev.txt` y
@@ -143,7 +144,7 @@ de 96 x 96 px, con los pies en la fila 90. Para regenerar los actuales: `pip ins
 | Clic izquierdo | Tajo |
 | Clic derecho | Desvío |
 | E (mantener y soltar) | Shuriken |
-| Shift | Dash |
+| Shift | Dash (con W + A/D, en diagonal hacia arriba) |
 | Esc / P | Pausa |
 | R | Reiniciar nivel |
 | F1 | Modo debug |

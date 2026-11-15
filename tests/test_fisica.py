@@ -13,7 +13,7 @@ DT = 1 / 60
 
 
 def nuevo_jugador():
-    nivel = Level(S.LEVELS_DIR / "nivel1.txt")
+    nivel = Level(S.BASE_DIR / "tests" / "niveles" / "pruebas.txt")
     return nivel, Player(*nivel.spawn)
 
 
@@ -24,7 +24,7 @@ def simular(jugador, nivel, segundos, **kw):
 
 class TestFisica(unittest.TestCase):
     def test_nivel_carga(self):
-        nivel = Level(S.LEVELS_DIR / "nivel1.txt")
+        nivel = Level(S.BASE_DIR / "tests" / "niveles" / "pruebas.txt")
         self.assertEqual(nivel.width, 80 * S.TILE)
         self.assertEqual(nivel.height, 17 * S.TILE)
         self.assertGreater(len(nivel.solids), 100)

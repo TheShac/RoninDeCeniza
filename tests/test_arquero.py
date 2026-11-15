@@ -21,7 +21,7 @@ SUELO = 15 * S.TILE
 
 
 def nivel():
-    return Level(S.LEVELS_DIR / "nivel1.txt")
+    return Level(S.BASE_DIR / "tests" / "niveles" / "pruebas.txt")
 
 
 def jugador_en(x_pies, lv, facing=1):

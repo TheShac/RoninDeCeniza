@@ -17,7 +17,7 @@ SUELO = 15 * S.TILE          # y de la superficie del suelo en nivel1
 
 
 def nivel():
-    return Level(S.LEVELS_DIR / "nivel1.txt")
+    return Level(S.BASE_DIR / "tests" / "niveles" / "pruebas.txt")
 
 
 def jugador_en(x_pies, lv):
@@ -197,7 +197,8 @@ class TestZombi(unittest.TestCase):
         variantes = {(k, v) for k, v, _, _ in nivel().enemy_spawns}
         self.assertEqual(variantes, {("caminante", "aldeano"), ("caminante", "samurai"),
                                      ("corredor", "campesino"), ("corredor", "ashigaru"),
-                                     ("arquero", "cazador"), ("arquero", "kyudoka")})
+                                     ("arquero", "cazador"), ("arquero", "kyudoka"),
+                                     ("hinchado", "sumo")})
 
     def test_nivel_de_pruebas_esta_marcado_como_tal(self):
         self.assertTrue(nivel().test_mode)
