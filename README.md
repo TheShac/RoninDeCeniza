@@ -175,6 +175,7 @@ RoninDeCeniza/
 - [X] Zombi hinchado (luchador de sumo): se infla y explota con impulso radial y reacción en cadena
 - [X] Sierras giratorias (fijas y con riel): movimiento rotacional y colisión círculo contra caja
 - [X] Suelo de hielo (`~`) y plataformas móviles lineales y circulares (arrastre, empuje, momentum al saltar)
+- [X] Suelo de lodo (`=`): se camina a la mitad de velocidad y se salta más bajo (también frena a los zombis)
 - [ ] Nivel 1 completo con parallax y primer jefe
 - [ ] Dash, menús y estados del juego, sonido
 - [ ] Nivel 2 y segundo jefe

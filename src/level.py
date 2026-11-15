@@ -5,6 +5,7 @@ Formato de levels/*.txt:
   - '#' bloque sólido, 'P' posición inicial del jugador, '.' vacío
   - Zombis (aparecen apoyados en el suelo de esa casilla): 'Z' caminante aldeano, 'X' caminante samurai,
     'R' corredor campesino, 'A' corredor ashigaru, 'C' arquero cazador, 'Y' arquero kyudoka, 'H' hinchado (sumo)
+  - '=' bloque de lodo (sólido y pegajoso: al pisarlo se camina a MUD_SPEED_MULT y se salta con MUD_JUMP_MULT)
   - '~' bloque de hielo (sólido y resbaladizo: el agarre se multiplica por ICE_GRIP al pisarlo)
   - Plataformas móviles (sólidas, llevan encima a quien las pisa; 'fila' es la fila de su cara superior):
       ;plataforma=lineal,col,fila,ancho,recorrido_x,recorrido_y[,velocidad]     (ida y vuelta; recorrido en casillas)
@@ -17,7 +18,7 @@ Agregar un nivel nuevo = agregar un .txt, sin tocar el código.
 import pygame
 
 from moving_platform import MovingPlatform, step as platform_step
-from settings import (TILE, GRAVITY, PLAYER_SIZE, PAPER, INK, SAW_RADIUS, SAW_PATH_SPEED, ICE_GRIP, ICE, ICE_LINE,
+from settings import (TILE, GRAVITY, PLAYER_SIZE, PAPER, INK, SAW_RADIUS, SAW_PATH_SPEED, ICE_GRIP, ICE, ICE_LINE, MUD, MUD_DARK,
                       PLATFORM_H, PLATFORM_SPEED, PLATFORM_OMEGA)
 
 
@@ -43,6 +44,7 @@ class Level:
         self.enemy_spawns = []    # (tipo, variante, x de los pies, y de los pies)
         self.saw_specs = []       # (cx, cy, radio, dx, dy, velocidad): sierras (todo en px)
         self.ice = []             # bloques de hielo (subconjunto de solids)
+        self.mud = []             # bloques de lodo (subconjunto de solids)
         self.signs = []           # (x, y, texto): rótulos del modo pruebas
         self.platform_specs = []  # kwargs de MovingPlatform
         self.platforms = []
@@ -60,6 +62,10 @@ class Level:
             for c, ch in enumerate(row):
                 if ch == "#":
                     self.solids.append(pygame.Rect(c * TILE, r * TILE, TILE, TILE))
+                elif ch == "=":
+                    block = pygame.Rect(c * TILE, r * TILE, TILE, TILE)
+                    self.solids.append(block)
+                    self.mud.append(block)
                 elif ch == "~":
                     block = pygame.Rect(c * TILE, r * TILE, TILE, TILE)
                     self.solids.append(block)
@@ -84,14 +90,20 @@ class Level:
         """Bloques fijos (sin las plataformas móviles)."""
         return self.solids[:self.static_count]
 
-    def grip_under(self, rect):
-        """Agarre del suelo bajo los pies de la caja (x, y, w, h): el del nivel, o más bajo si pisa hielo."""
+    @staticmethod
+    def _foot_on(blocks, rect):
+        """True si alguno de los dos pies de la caja (x, y, w, h) pisa uno de `blocks`."""
         x, y, w, h = rect
         py = y + h + 1
-        for px in (x + 2, x + w - 2):
-            if any(r.left <= px < r.right and r.top <= py < r.bottom for r in self.ice):
-                return self.grip * ICE_GRIP
-        return self.grip
+        return any(r.left <= px < r.right and r.top <= py < r.bottom for px in (x + 2, x + w - 2) for r in blocks)
+
+    def grip_under(self, rect):
+        """Agarre del suelo bajo los pies de la caja (x, y, w, h): el del nivel, o más bajo si pisa hielo."""
+        return self.grip * ICE_GRIP if self._foot_on(self.ice, rect) else self.grip
+
+    def on_mud(self, rect):
+        """True si pisa lodo (basta un pie)."""
+        return self._foot_on(self.mud, rect)
 
     def update_platforms(self, dt, entities):
         """Mueve las plataformas y arrastra / empuja a las entidades (con pos, size, on_ground)."""
@@ -174,6 +186,7 @@ class Level:
     def draw(self, surface, camera, debug=False):
         sw, sh = surface.get_size()
         ice_ids = {id(b) for b in self.ice}
+        mud_ids = {id(b) for b in self.mud}
         for r in self.static_solids:
             x, y = r.x - camera.x, r.y - camera.y
             if x + r.w < 0 or x > sw or y + r.h < 0 or y > sh:
@@ -181,6 +194,11 @@ class Level:
             if id(r) in ice_ids:                      # hielo: celeste con un brillo, para distinguirlo del suelo normal
                 pygame.draw.rect(surface, ICE, (int(x), int(y), r.w, r.h))
                 pygame.draw.line(surface, ICE_LINE, (int(x) + 4, int(y) + 5), (int(x) + r.w - 12, int(y) + 5), 2)
+                pygame.draw.rect(surface, INK, (int(x), int(y), r.w, r.h), 2)
+            elif id(r) in mud_ids:                    # lodo: marrón con ondas oscuras
+                pygame.draw.rect(surface, MUD, (int(x), int(y), r.w, r.h))
+                for k, off in enumerate((6, 15)):
+                    pygame.draw.line(surface, MUD_DARK, (int(x) + 3 + 6 * k, int(y) + off), (int(x) + r.w - 5 - 4 * k, int(y) + off), 2)
                 pygame.draw.rect(surface, INK, (int(x), int(y), r.w, r.h), 2)
             else:
                 pygame.draw.rect(surface, INK, (int(x), int(y), r.w, r.h))

@@ -273,6 +273,8 @@ class Player:
                 accel, friction = S.AIR_ACCEL, S.AIR_DRAG
             if inp.move_x != 0 and not locked:
                 mult = S.CROUCH_SPEED_MULT if self.crouching else (S.ACTION_SPEED_MULT if self.action else 1.0)
+                if self.on_ground and level.on_mud(self.rect):
+                    mult *= S.MUD_SPEED_MULT                 # el lodo frena la marcha
                 self.vel.x = move_toward(self.vel.x, inp.move_x * S.RUN_SPEED * mult, accel * dt)
                 if self.action is None:
                     self.facing = inp.move_x
@@ -282,7 +284,7 @@ class Player:
         # --- Salto ---
         can_jump = not locked and not self.crouching
         if can_jump and self.jump_buffer > 0 and self.coyote > 0:
-            self.vel.y = -S.JUMP_SPEED
+            self.vel.y = -S.JUMP_SPEED * (S.MUD_JUMP_MULT if level.on_mud(self.rect) else 1.0)   # en lodo se salta menos
             self.vel.x += self.ride_vel[0]                 # momentum: conserva la velocidad de la plataforma
             self.vel.y += self.ride_vel[1]
             self.jumping = True

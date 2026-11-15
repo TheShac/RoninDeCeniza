@@ -97,11 +97,13 @@ cualquier estado --(golpe recibido)--> AGOTADO (breve) o MUERTO
 | Plataformas móviles | Se desplazan en línea recta (ida y vuelta) o en círculo: `pos = centro + r (cos θ, sin θ)`, con `θ = ω t` | Movimiento uniforme y circular uniforme, sistemas de referencia | 2 |
 | Suelo de hielo | `grip` multiplicado por `ICE_GRIP` (0,10): cuesta arrancar y frenar | Fricción e inercia | 2 |
 
+| Suelo de lodo | Velocidad máxima ×0,50 y rapidez de salto ×0,75 | Altura de salto `h = v²/2g` (≈ 56 % de la normal) | 1 y 2 |
+
 ### Plataformas móviles y hielo (hecho)
 - Lineal: `s(t) = L − |(v·t mod 2L) − L|` (onda triangular). Circular: velocidad `v = ω·r`, tangente al círculo.
 - Quien va encima (Ronin o zombi) se desplaza con la plataforma; si salta conserva su velocidad: `v_salto = v_propia + v_plataforma`.
 - Si la plataforma choca con alguien lo empuja; si lo aplasta contra una pared recibe 1 de daño y queda encima.
-- Nivel: `;plataforma=lineal,col,fila,ancho,dx,dy[,vel]`, `;plataforma=circular,col,fila,ancho,radio[,omega]`, `;letrero=col,fila,texto`; `~` es un bloque de hielo (el agarre se mide bajo los pies).
+- Nivel: `;plataforma=lineal,col,fila,ancho,dx,dy[,vel]`, `;plataforma=circular,col,fila,ancho,radio[,omega]`, `;letrero=col,fila,texto`; `~` es un bloque de hielo (el agarre se mide bajo los pies) y `=` uno de lodo.
 
 ### Sierra giratoria (hecha)
 - Un disco de acero con 12 dientes que **gira** a 18 rad/s (unas 2,9 vueltas por segundo). Al tocar al Ronin le quita **1 corazón** y lo empuja hacia atrás y arriba (el knockback de cualquier golpe). Sigue las mismas reglas: la invulnerabilidad de 1 s tras un golpe y la del **dash**, que la atraviesa sin daño.

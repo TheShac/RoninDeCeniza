@@ -110,6 +110,8 @@ class Walker:
             else:
                 self.facing = -self.facing
                 self.vel.x = 0.0
+        if level.on_mud(self.rect):
+            speed *= S.MUD_SPEED_MULT                      # el lodo frena también a los zombis
         self.vel.x = move_toward(self.vel.x, self.facing * speed, S.WALKER_ACCEL * level.grip_under(self.rect) * self._dt)
 
     def _think(self, player, level):
@@ -239,7 +241,7 @@ class Runner(Walker):
                 return
 
         if self.state == "charge":
-            self.vel.x = move_toward(self.vel.x, self.facing * S.RUNNER_MAX_SPEED, S.RUNNER_ACCEL * dt)
+            self.vel.x = move_toward(self.vel.x, self.facing * S.RUNNER_MAX_SPEED * (S.MUD_SPEED_MULT if level.on_mud(self.rect) else 1.0), S.RUNNER_ACCEL * dt)
             if not self.hit_done and not player.dead and rects_overlap(self.rect, player.rect):
                 if player.take_damage(self.center[0]):      # con dash no cuenta: el Ronin es invulnerable
                     self.hit_done = True

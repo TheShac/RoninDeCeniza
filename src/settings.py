@@ -22,6 +22,8 @@ STEEL = (150, 154, 166)
 ICE = (178, 208, 226)
 ICE_LINE = (232, 244, 250)
 WOOD = (150, 118, 74)
+MUD = (92, 70, 48)
+MUD_DARK = (58, 42, 30)
 
 # --- Física del jugador ---
 GRAVITY = 2200.0          # px/s^2 (se puede cambiar por nivel)
@@ -131,6 +133,8 @@ SAW_PATH_SPEED = 90.0        # px/s por defecto cuando va y viene por un riel
 SAW_DAMAGE = 1               # corazones por contacto
 
 # --- Suelo de hielo y plataformas móviles ---
+MUD_SPEED_MULT = 0.50         # lodo: la velocidad máxima al caminar se multiplica por esto
+MUD_JUMP_MULT = 0.75          # lodo: la rapidez de despegue del salto se multiplica por esto (altura ≈ 0,56 de la normal, h = v²/2g)
 ICE_GRIP = 0.10              # el agarre del suelo se multiplica por esto sobre hielo (poca aceleración y poco frenado)
 PLATFORM_H = 16              # px de alto de una plataforma móvil
 PLATFORM_SPEED = 70.0        # px/s por defecto de una plataforma lineal
