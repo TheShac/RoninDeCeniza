@@ -38,7 +38,7 @@ Cálculos de referencia:
 
 ## Habilidades
 
-Estado: implementados el movimiento, agacharse, el dash y el shuriken (con su trayectoria). El tajo y el desvío ya tienen su animación y su duración, y falta su efecto en el juego (daño y reflexión de proyectiles), que se agrega junto con los enemigos.
+Estado: implementados el movimiento, agacharse, el dash y el shuriken (con su trayectoria). El tajo ya hiere a los enemigos. El desvío tiene su animación y su duración, y falta la reflexión de proyectiles, que se agrega con el zombi arquero.
 
 ### Tajo (clic izquierdo)
 - La katana barre un arco de 120° centrado en la dirección del mouse.
@@ -100,7 +100,7 @@ La paleta es negro tinta, grises, paja ocre, rojo y acero, coherente con el esti
 | `crouch` | 2 | 3 cuadros/s | Agachado y quieto (S) | Sí |
 | `crouch_walk` | 6 | 8 cuadros/s, escalada por la velocidad real | Agachado y avanzando (S + A/D), al 40 % de la velocidad | Sí |
 | `dash` | 2 | 0,15 s | Shift | Sí, con movimiento real |
-| `attack` | 6 | 0,30 s | Clic izquierdo o J | Solo animación (falta el daño) |
+| `attack` | 6 | 0,30 s | Clic izquierdo o J | Sí, hiere entre los 0,06 s y los 0,22 s |
 | `parry` | 4 | 0,35 s | Clic derecho o K | Solo animación (falta la reflexión) |
 | `throw` | 4 | 0,30 s | E | Sí: la estrella sale en el cuadro 3 (a los 0,15 s) |
 | `hurt` | 2 | 0,40 s | Recibir un golpe (F2 en modo debug) | Sí, con knockback |
@@ -173,7 +173,8 @@ Quieto <-> Corriendo
 | Dash (impulso, inercia, recarga de 1 s e invulnerabilidad) | Hecho |
 | Diseño visual y las 12 animaciones | Hecho |
 | Recibir daño y morir (animación y knockback) | Hecho; falta conectarlo a los enemigos |
-| Tajo | Animación y duración hechas; falta el arco de daño |
+| Tajo | Hecho: arco de 120° y 64 px, hiere durante 0,16 s y una vez por enemigo (producto punto) |
 | Desvío | Animación y duración hechas; falta la reflexión de proyectiles |
 | Shuriken | Hecho: sale de la mano a los 0,15 s, 700 px/s, tiro parabólico, gira a 720°/s y se clava en el mapa; falta que dañe enemigos |
-| Vida en corazones y checkpoints | Pendiente |
+| Vida en corazones (5), invulnerabilidad de 1 s tras un golpe y reinicio al morir | Hecho |
+| Checkpoints | Pendiente |

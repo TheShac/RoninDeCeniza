@@ -55,3 +55,40 @@ SHURIKEN_RADIUS = 9
 SHURIKEN_LIFETIME = 2.0      # s
 THROW_RELEASE = 0.15         # s desde que empieza el lanzamiento hasta que la estrella sale de la mano
 SHURIKEN_HAND = (22, -26)    # posición de salida respecto a los pies (x hacia donde mira, y hacia arriba)
+
+# --- Vida y combate del Ronin ---
+PLAYER_MAX_HEALTH = 5        # corazones
+PLAYER_IFRAMES = 1.0         # s de invulnerabilidad tras recibir daño
+SLASH_REACH = 64.0           # px de alcance del tajo
+SLASH_ARC = 120.0            # grados de apertura del tajo (60 a cada lado de la horizontal)
+SLASH_WINDOW = (0.06, 0.22)  # s desde que empieza el ataque durante los que el arco hace daño
+SLASH_ORIGIN_Y = 0.35        # altura del hombro como fracción del alto de la hitbox (desde arriba)
+DEATH_RESTART = 1.5          # s tras morir antes de reiniciar el nivel
+
+# --- Zombi caminante (variantes: aldeano y samurai) ---
+WALKER_SIZE = (24, 50)
+WALKER_HEALTH = 1
+WALKER_PATROL_SPEED = 60.0
+WALKER_CHASE_SPEED = 90.0
+WALKER_ACCEL = 700.0
+WALKER_SIGHT = 220.0         # px de visión (se compara el cuadrado de la distancia)
+WALKER_SIGHT_DY = 90.0       # diferencia de altura máxima para verte
+WALKER_ATTACK_RANGE = 30.0   # px de separación entre cajas para lanzar el zarpazo
+WALKER_ATTACK_COOLDOWN = 1.0
+ENEMY_ACTION_TIME = {"attack": 0.40, "hurt": 0.35, "death": 0.80}
+ENEMY_HIT_WINDOW = (0.15, 0.30)   # s del ataque en los que el zarpazo hiere
+ENEMY_CLAW = (36, 34)        # caja del zarpazo delante del enemigo
+ENEMY_KNOCKBACK = (180.0, -200.0)
+CORPSE_TIME = 2.0            # s que queda el cuerpo antes de desaparecer
+
+# --- Zombi corredor (variantes: campesino y ashigaru) ---
+RUNNER_SIZE = (26, 46)
+RUNNER_HEALTH = 1
+RUNNER_PATROL_SPEED = 80.0
+RUNNER_SIGHT = 320.0         # px; al verte con el Ronin dentro de este radio, embiste
+RUNNER_ACCEL = 900.0         # px/s^2 (movimiento uniformemente acelerado)
+RUNNER_MAX_SPEED = 260.0     # px/s
+RUNNER_BRAKE = 1400.0        # px/s^2 de frenado por fricción al terminar la embestida
+RUNNER_CHARGE_DIST = 420.0   # px máximos que recorre una embestida
+RUNNER_STUN = 0.8            # s aturdido si la embestida falla
+RUNNER_COOLDOWN = 1.2        # s antes de poder embestir de nuevo

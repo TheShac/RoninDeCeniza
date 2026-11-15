@@ -29,14 +29,33 @@ cualquier estado --(golpe recibido)--> AGOTADO (breve) o MUERTO
 | Zombi hinchado | 3 | Muy lento y pesado | Explota al morir | 2 | B |
 
 ### Zombi caminante
-- Patrulla a 60 px/s y persigue a 90 px/s si el jugador está a menos de 220 px.
-- Ataca al contacto con 1 s de recarga entre golpes.
-- Cómo vencerlo: un tajo, o saltarlo. Es el enemigo básico para enseñar el combate.
+- Patrulla a 60 px/s y persigue a 90 px/s si el jugador está a menos de 220 px y a una altura parecida (máx. 90 px de diferencia).
+- Ataca con un zarpazo cuando queda a 30 px o menos, con 1 s de recarga entre golpes. El golpe hiere solo en una ventana del ataque (de 0,15 s a 0,30 s) y quita 1 corazón.
+- Al patrullar da la vuelta si choca con una pared o si no hay suelo delante (no se cae por los pozos). Al perseguir se detiene en el borde.
+- Tiene 1 de vida: un tajo o un shuriken lo matan. Al morir sale empujado, cae y su cuerpo desaparece a los 2 s.
+- Cómo vencerlo: un tajo, un shuriken, o saltarlo. Es el enemigo básico para enseñar el combate.
+- **Dos variantes de apariencia**, con el mismo comportamiento por ahora:
+  - **Aldeano**: campesino japonés de la era samurái, con kimono índigo raído, obi, sandalias de paja y pelo enmarañado con una banda rota.
+  - **Samurái**: guerrero caído con casco agrietado y un cuerno roto, pectoral de láminas con cordones desteñidos, hombreras, falda de placas y una katana rota en la mano.
+- Animaciones (en `assets/images/zombi/caminante/<variante>_<animación>.png`): `walk` (6 cuadros), `attack` (4, dura 0,40 s), `hurt` (2) y `death` (5, dura 0,80 s).
+- En el nivel de pruebas se colocan con las letras `Z` (aldeano) y `X` (samurái), o con las teclas `1` y `2`.
+
+![Animaciones del zombi caminante](img/zombi_caminante.png)
 
 ### Zombi corredor
-- Patrulla a 80 px/s. Si el jugador está a menos de 320 px, acelera a 900 px/s² hasta 260 px/s.
-- Embiste en línea recta. Si falla, frena por fricción y queda aturdido 0,8 s, una ventana para atacarlo.
-- Cómo vencerlo: dash para atravesar la embestida, o un tajo bien cronometrado.
+- Patrulla a 80 px/s. Si ve al Ronin a menos de 320 px y a una altura parecida, **embiste** hacia él: acelera a 900 px/s² hasta un tope de 260 px/s. Es un movimiento uniformemente acelerado (`v = v + a·dt`).
+- La embestida termina al chocar con una pared, al llegar a 420 px de recorrido o al acercarse a un borde sin suelo (mira por delante la distancia de frenado `v² / 2a`, así no se cae por los pozos).
+- Luego **frena por fricción** (1400 px/s²). Si golpeó al Ronin, vuelve a patrullar; si **falló**, queda **aturdido 0,8 s** sin moverse. Esa es la ventana para atacarlo. Tras cada embestida espera 1,2 s antes de repetirla.
+- Si el Ronin lo toca durante la embestida le quita 1 corazón (una vez por embestida) y lo empuja.
+- Tiene 1 de vida: un tajo o un shuriken lo matan, también cuando va a toda velocidad.
+- Cómo vencerlo: **dash** para atravesar la embestida (el Ronin es invulnerable durante el dash, así que la embestida falla y el corredor queda aturdido), un tajo bien cronometrado, o un shuriken a distancia.
+- **Dos variantes de apariencia**, con el mismo comportamiento:
+  - **Campesino**: flaco, con el torso al aire (costillas y cicatrices), hakama rota y una banda en la frente.
+  - **Ashigaru**: soldado raso de la era samurái, con *jingasa* (sombrero cónico de hierro abollado), coraza ligera de cuero con cordones rojos y falda de placas.
+- Animaciones (en `assets/images/zombi/corredor/<variante>_<animación>.png`): `walk` (6 cuadros), `run` (6, el ciclo de carrera acelera con la velocidad real), `stun` (2) y `death` (5).
+- En el nivel de pruebas se colocan con las letras `R` (campesino) y `A` (ashigaru), o con las teclas `3` y `4`.
+
+![Animaciones del zombi corredor](img/zombi_corredor.png)
 
 ### Zombi arquero
 - Se queda en su plataforma. Si el jugador se acerca a menos de 150 px, retrocede a 80 px/s.
@@ -82,11 +101,11 @@ Los enemigos pueden soltar corazones o shuriken (aprox. 20 %). Los jefes sueltan
 
 | Elemento | Estado |
 |---|---|
-| Máquina de estados y detección | Pendiente |
-| Zombi caminante | Pendiente |
-| Zombi corredor | Pendiente |
+| Máquina de estados y detección | Hecho para el caminante y el corredor |
+| Zombi caminante (aldeano y samurái) | Hecho |
+| Zombi corredor (campesino y ashigaru) | Hecho |
 | Zombi arquero y proyectiles | Pendiente |
 | Zombi hinchado | Pendiente |
 | Sierras y plataformas móviles | Pendiente |
-| Samurái Caído | Pendiente |
+| Samurái Caído (jefe) | Pendiente |
 | Oni | Pendiente |

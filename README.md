@@ -45,29 +45,30 @@ El ronin, un samurái sin señor que lleva años vagando por los caminos, regres
 
 ## Controles
 
-| Entrada                            | Acción                            |
-| ---------------------------------- | ---------------------------------- |
-| `A` / `D` o flechas            | Mover                              |
-| `W`, `Espacio` o flecha arriba | Saltar (mantener para más altura) |
-| `S` (mantener)                   | Agacharse; si además se mueve, avanza agachado (más lento) |
-| Clic izquierdo o `J`             | Tajo (solo animación por ahora)  |
-| Clic derecho o `K`               | Desvío (solo animación por ahora) |
-| `E`                              | Lanzar shuriken |
-| `Shift`                          | Dash                               |
-| `Esc`                            | Salir (la pausa vendrá con los menús) |
-| `R`                              | Reiniciar nivel                    |
-| `F1`                             | Modo debug (con él: `F2` daño, `F3` muerte) |
+| Entrada                            | Acción                                                                           |
+| ---------------------------------- | --------------------------------------------------------------------------------- |
+| `A` / `D` o flechas            | Mover                                                                             |
+| `W`, `Espacio` o flecha arriba | Saltar (mantener para más altura)                                                |
+| `S` (mantener)                   | Agacharse; si además se mueve, avanza agachado (más lento)                      |
+| Clic izquierdo o `J`             | Tajo (hiere en un arco de 120°)                                                  |
+| Clic derecho o `K`               | Desvío (solo animación por ahora)                                               |
+| `E`                              | Lanzar shuriken                                                                   |
+| `Shift`                          | Dash                                                                              |
+| `Esc`                            | Salir (la pausa vendrá con los menús)                                           |
+| `R`                              | Reiniciar nivel                                                                   |
+| `F1`                             | Modo debug (con él: `F2` golpe de prueba, `F3` muerte)                       |
+| `1` / `2` / `3` / `4`            | Solo en el nivel de pruebas: genera delante del Ronin un caminante aldeano, un caminante samurái, un corredor campesino o un corredor ashigaru |
 
 ## Conceptos de física y matemáticas aplicados
 
-| Concepto              | Aplicación en el juego                                                                   | Estado       |
-| --------------------- | ----------------------------------------------------------------------------------------- | ------------ |
-| Leyes de movimiento   | Gravedad, salto, aceleración, fricción e inercia (`player.py`, `physics.py`)        | Implementado |
-| Colisiones            | Cajas AABB resueltas por eje con subpasos (`physics.py`)                                | Implementado |
-| Álgebra de vectores  | `Vector2` para posición y velocidad; normalización, reflexión del desvío, knockback | En curso     |
-| Movimiento rotacional | Arco del tajo, shuriken giratorio, sierras                                                | En curso (shuriken hecho) |
-| Tiro parabólico      | Shuriken y rocas del Oni                                                                  | En curso (shuriken hecho) |
-| Perspectiva           | Parallax de fondo en varias capas                                                         | Pendiente    |
+| Concepto              | Aplicación en el juego                                                                                                | Estado                    |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| Leyes de movimiento   | Gravedad, salto, aceleración, fricción e inercia (`player.py`, `physics.py`); embestida del corredor con aceleración constante (`enemy.py`)                                     | Implementado              |
+| Colisiones            | Cajas AABB resueltas por eje con subpasos (`physics.py`)                                                             | Implementado              |
+| Álgebra de vectores  | `Vector2` para posición y velocidad; producto punto en el arco del tajo, knockback; falta la reflexión del desvío | En curso                  |
+| Movimiento rotacional | Arco del tajo, shuriken giratorio, sierras                                                                             | En curso (shuriken hecho) |
+| Tiro parabólico      | Shuriken y rocas del Oni                                                                                               | En curso (shuriken hecho) |
+| Perspectiva           | Parallax de fondo en varias capas                                                                                      | Pendiente                 |
 
 ## Tecnologías
 
@@ -109,12 +110,12 @@ tiempo de gracia del salto (coyote time).
 
 ```
 RoninDeCeniza/
-  src/          código fuente (main, game, player, animation, level, camera, physics, settings)
-  tests/        pruebas de la física y de las animaciones
-  tools/        generador de sprites del Ronin y galería de animaciones
+  src/          código fuente (main, game, player, enemy, combat, projectile, animation, level, camera, physics, settings)
+  tests/        pruebas de la física, las animaciones, el combate y los enemigos
+  tools/        generadores de sprites (Ronin y zombis) y galería de animaciones
   levels/       mapas de los niveles (.txt)
   assets/
-    images/     sprites y fondos
+    images/     sprites: ronin/ y zombi/<tipo>/ (caminante, corredor), una hoja por animación
     sounds/     efectos y música
   docs/         documentación de diseño (protagonista y enemigos)
   requirements.txt
@@ -122,10 +123,10 @@ RoninDeCeniza/
 
 ## Documentación
 
-| Documento                                                                   | Contenido                                              |
-| --------------------------------------------------------------------------- | ------------------------------------------------------ |
-| [docs/01_protagonista.md](docs/01_protagonista.md)                           | El Ronin: atributos, movimiento, habilidades y estados |
-| [docs/02_enemigos.md](docs/02_enemigos.md)                                   | Enemigos, peligros del escenario y jefes               |
+| Documento                                         | Contenido                                              |
+| ------------------------------------------------- | ------------------------------------------------------ |
+| [docs/01_protagonista.md](docs/01_protagonista.md) | El Ronin: atributos, movimiento, habilidades y estados |
+| [docs/02_enemigos.md](docs/02_enemigos.md)         | Enemigos, peligros del escenario y jefes               |
 
 ## Estado del desarrollo
 
@@ -135,7 +136,8 @@ RoninDeCeniza/
 - [X] Diseño del Ronin y sus 12 animaciones
 - [X] Agacharse, avanzar agachado y dash
 - [X] Shuriken (trayectoria parabólica y rotación)
-- [ ] Tajo, zombi caminante, vida y knockback
+- [X] Tajo con arco de daño, zombi caminante (aldeano y samurái), vida en corazones y knockback
+- [X] Zombi corredor (campesino y ashigaru) con embestida acelerada y aturdimiento
 - [ ] Proyectiles, arquero, desvío y shuriken
 - [ ] Nivel 1 completo con parallax y primer jefe
 - [ ] Dash, menús y estados del juego, sonido
@@ -144,6 +146,6 @@ RoninDeCeniza/
 
 ## Créditos y licencias
 
-- Autor: _completar nombre_
+- Autor: _Leonardo Rodriguez_
 - Asignatura: E.F.P. Fundamentos Teóricos de Videojuegos. Profesor: Raúl Herrera A.
 - Los recursos gráficos y sonoros de terceros, si se usan, se listarán aquí con su licencia.

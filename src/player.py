@@ -49,6 +49,9 @@ class Player:
         self.dash_cooldown = 0.0
         self.animator = None          # lo asigna Game cuando están cargados los sprites
         self._restart_anim = False
+        self.health = S.PLAYER_MAX_HEALTH
+        self.iframes = 0.0            # invulnerabilidad tras un golpe
+        self.slash_hits = set()       # enemigos ya golpeados por el tajo en curso
         self.new_projectiles = []     # shurikens recién lanzados; Game los recoge cada frame
         self._thrown = False
 
@@ -88,13 +91,40 @@ class Player:
         self.action_time = S.ACTION_TIME[name]
         self._restart_anim = True
         self._thrown = False
+        self.slash_hits = set()
 
-    def hurt(self):
-        """Recibe un golpe: knockback hacia atrás y control bloqueado un instante."""
-        if self.dead:
-            return
+    def hurt(self, source_x=None):
+        """Animación de golpe con knockback: se aleja de `source_x` (o hacia atrás si no se indica)."""
+        if self.dead or self.action == "hurt":
+            return                                   # un golpe en curso no se reinicia ni se encadena
         self.start_action("hurt")
-        self.vel.update(-self.facing * S.HURT_KNOCKBACK[0], S.HURT_KNOCKBACK[1])
+        away = -self.facing if source_x is None else (1 if self.center[0] >= source_x else -1)
+        self.vel.update(away * S.HURT_KNOCKBACK[0], S.HURT_KNOCKBACK[1])
+
+    def take_damage(self, source_x=None):
+        """Pierde 1 corazón (si no es invulnerable). Devuelve True si el golpe contó."""
+        if self.dead or self.invulnerable or self.iframes > 0:
+            return False
+        self.health -= 1
+        self.iframes = S.PLAYER_IFRAMES
+        if self.health <= 0:
+            self.health = 0
+            self.die()
+        else:
+            self.hurt(source_x)
+        return True
+
+    @property
+    def slash_active(self):
+        """El arco del tajo hiere solo durante una ventana corta del ataque."""
+        if self.action != "attack":
+            return False
+        t = S.ACTION_TIME["attack"] - self.action_time
+        return S.SLASH_WINDOW[0] <= t <= S.SLASH_WINDOW[1]
+
+    @property
+    def slash_origin(self):
+        return (self.pos.x + self.size[0] / 2, self.pos.y + self.size[1] * S.SLASH_ORIGIN_Y)
 
     def die(self):
         if not self.dead:
@@ -105,11 +135,13 @@ class Player:
         self.crouching = False
         self.action = None
         self.dash_cooldown = 0.0
+        self.iframes = S.PLAYER_IFRAMES
         self.pos.update(*spawn)
         self.vel.update(0, 0)
 
     def _tick_action(self, dt):
         self.dash_cooldown = max(0.0, self.dash_cooldown - dt)
+        self.iframes = max(0.0, self.iframes - dt)
         if self.action == "throw" and not self._thrown and S.ACTION_TIME["throw"] - self.action_time >= S.THROW_RELEASE:
             self._thrown = True
             hx, hy = S.SHURIKEN_HAND
@@ -220,6 +252,8 @@ class Player:
 
     # ------------------------------------------------------------------ dibujo
     def draw(self, surface, camera):
+        if self.iframes > 0 and not self.dead and int(self.iframes * 20) % 2 == 0:
+            return                       # parpadea mientras es invulnerable
         if self.animator is None:
             self._draw_placeholder(surface, camera)
             return

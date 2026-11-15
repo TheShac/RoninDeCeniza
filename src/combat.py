@@ -1,0 +1,46 @@
+"""Reglas de combate: quién golpea a quién.
+
+Tajo del Ronin: un sector circular delante de él (álgebra de vectores).
+  Sea v el vector desde el hombro del Ronin hasta el punto del enemigo más cercano, y f = (facing, 0).
+  Hay golpe si  |v| <= alcance   y   v . f >= |v| * cos(arco / 2)     (producto punto = ángulo entre vectores)
+"""
+import math
+
+import settings as S
+
+
+def rects_overlap(a, b):
+    """Solape de dos cajas (x, y, w, h)."""
+    return a[0] < b[0] + b[2] and a[0] + a[2] > b[0] and a[1] < b[1] + b[3] and a[1] + a[3] > b[1]
+
+
+def slash_hits_rect(origin, facing, rect, reach=S.SLASH_REACH, arc=S.SLASH_ARC):
+    """True si la caja `rect` (x, y, w, h) está dentro del sector del tajo."""
+    rx, ry, rw, rh = rect
+    nx = min(max(origin[0], rx), rx + rw)          # punto de la caja más cercano al origen
+    ny = min(max(origin[1], ry), ry + rh)
+    vx, vy = nx - origin[0], ny - origin[1]
+    dist2 = vx * vx + vy * vy
+    if dist2 > reach * reach:
+        return False
+    if dist2 == 0:
+        return True                                # el origen está dentro de la caja
+    return vx * facing >= math.sqrt(dist2) * math.cos(math.radians(arc / 2))
+
+
+def resolve_combat(player, enemies, projectiles):
+    """Aplica el daño del Ronin (tajo y shurikens) a los enemigos. Cada tajo hiere a cada enemigo una vez."""
+    if player.slash_active:
+        for enemy in enemies:
+            if enemy.can_be_hit and id(enemy) not in player.slash_hits \
+                    and slash_hits_rect(player.slash_origin, player.facing, enemy.rect):
+                player.slash_hits.add(id(enemy))
+                enemy.damage(1, player.center[0])
+    for shot in projectiles:
+        if not shot.alive:
+            continue
+        for enemy in enemies:
+            if enemy.can_be_hit and rects_overlap(shot.rect, enemy.rect):
+                enemy.damage(1, shot.pos.x)
+                shot.alive = False
+                break

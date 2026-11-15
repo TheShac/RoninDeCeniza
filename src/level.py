@@ -1,13 +1,23 @@
 """Nivel cargado desde un archivo de texto.
 
 Formato de levels/*.txt:
-  - Líneas que empiezan con ';' son parámetros: ;clave=valor  (gravity, grip, nombre)
+  - Líneas que empiezan con ';' son parámetros: ;clave=valor  (gravity, grip, nombre, modo=pruebas)
   - '#' bloque sólido, 'P' posición inicial del jugador, '.' vacío
+  - Zombis (aparecen apoyados en el suelo de esa casilla): 'Z' caminante aldeano, 'X' caminante samurai,
+    'R' corredor campesino, 'A' corredor ashigaru
 Agregar un nivel nuevo = agregar un .txt, sin tocar el código.
 """
 import pygame
 
 from settings import TILE, GRAVITY, PLAYER_SIZE, PAPER, INK
+
+
+ENEMY_CHARS = {                       # letra -> (tipo, variante)
+    "Z": ("caminante", "aldeano"),
+    "X": ("caminante", "samurai"),
+    "R": ("corredor", "campesino"),
+    "A": ("corredor", "ashigaru"),
+}
 
 
 class Level:
@@ -16,7 +26,9 @@ class Level:
         self.gravity = GRAVITY
         self.grip = 1.0           # 1.0 suelo normal, valores bajos = hielo (poca fricción)
         self.solids = []
+        self.test_mode = False    # ;modo=pruebas habilita las teclas 1 y 2 para generar zombis
         self.spawn = (TILE, TILE)
+        self.enemy_spawns = []    # (tipo, variante, x de los pies, y de los pies)
 
         rows = []
         for line in path.read_text(encoding="utf-8").splitlines():
@@ -33,6 +45,8 @@ class Level:
                     self.solids.append(pygame.Rect(c * TILE, r * TILE, TILE, TILE))
                 elif ch == "P":
                     self.spawn = (c * TILE + (TILE - pw) / 2, (r + 1) * TILE - ph)
+                elif ch in ENEMY_CHARS:
+                    self.enemy_spawns.append((*ENEMY_CHARS[ch], c * TILE + TILE / 2, (r + 1) * TILE))
 
         self.width = max((len(row) for row in rows), default=0) * TILE
         self.height = len(rows) * TILE
@@ -42,6 +56,8 @@ class Level:
             self.gravity = float(value)
         elif key == "grip":
             self.grip = float(value)
+        elif key == "modo":
+            self.test_mode = value == "pruebas"
         elif key == "nombre":
             self.name = value
 

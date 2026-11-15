@@ -81,3 +81,41 @@ def load_ronin_animations():
     except (FileNotFoundError, pygame.error) as error:
         print(f"Aviso: no se pudieron cargar los sprites del Ronin ({error}).")
         return None
+
+
+# Animaciones de los zombis. Cada tipo tiene su carpeta (assets/images/zombi/<tipo>/<variante>_<animación>.png)
+# y sus variantes de apariencia.
+ENEMY_VARIANTS = {
+    "caminante": ("aldeano", "samurai"),
+    "corredor": ("campesino", "ashigaru"),
+}
+ENEMY_ANIMATIONS = {
+    "caminante": {
+        "walk": dict(fps=6, loop=True),
+        "attack": dict(duration=S.ENEMY_ACTION_TIME["attack"]),
+        "hurt": dict(duration=S.ENEMY_ACTION_TIME["hurt"]),
+        "death": dict(duration=S.ENEMY_ACTION_TIME["death"]),
+    },
+    "corredor": {
+        "walk": dict(fps=7, loop=True),
+        "run": dict(fps=14, loop=True),
+        "stun": dict(fps=4, loop=True),
+        "death": dict(duration=S.ENEMY_ACTION_TIME["death"]),
+    },
+}
+
+
+def load_enemy_animations(kind, variant):
+    """Carga las hojas de una variante de zombi. Devuelve None si faltan (se dibuja un rectángulo)."""
+    try:
+        animations = {}
+        for name, spec in ENEMY_ANIMATIONS[kind].items():
+            frames = load_strip(S.SPRITES_DIR / "zombi" / kind / f"{variant}_{name}.png", S.SPRITE_FRAME, S.SPRITE_FRAME)
+            if "duration" in spec:
+                animations[name] = Animation(frames, len(frames) / spec["duration"], loop=False)
+            else:
+                animations[name] = Animation(frames, spec["fps"], spec["loop"])
+        return animations
+    except (FileNotFoundError, pygame.error) as error:
+        print(f"Aviso: no se pudieron cargar los sprites de {kind} {variant} ({error}).")
+        return None
