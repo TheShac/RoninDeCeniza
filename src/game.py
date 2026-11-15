@@ -192,6 +192,7 @@ class Game:
 
     def update(self, dt, inp):
         self.last_actions_time = max(0.0, self.last_actions_time - dt)
+        self.level.update_platforms(dt, [self.player] + self.enemies)
         self.player.update(dt, inp, self.level)
         self.projectiles.extend(self.player.new_projectiles)
         self.player.new_projectiles.clear()
@@ -224,7 +225,10 @@ class Game:
     # ----------------------------------------------------------------- dibujo
     def draw(self):
         self.screen.fill(S.PAPER)
-        self.level.draw(self.screen, self.camera)
+        self.level.draw(self.screen, self.camera, self.debug)
+        if self.level.test_mode:                                    # rótulos de zona del nivel de pruebas
+            for sx, sy, text in self.level.signs:
+                self.draw_text(text, int(sx - self.camera.x), int(sy - self.camera.y), S.INK)
         for saw in self.saws:
             saw.draw(self.screen, self.camera, self.debug)
         for enemy in self.enemies:

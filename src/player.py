@@ -64,6 +64,7 @@ class Player:
         self.parry_aim = (1.0, 0.0)   # hacia dónde se devuelven los proyectiles
         self.parry_reflected = False
         self.parry_lock = 0.0         # s que queda inutilizable el desvío tras fallar
+        self.ride_vel = (0.0, 0.0)    # velocidad de la plataforma móvil que lo lleva (px/s); se suma al saltar
         self.new_projectiles = []     # shurikens recién lanzados; Game los recoge cada frame
         self._thrown = False
 
@@ -265,8 +266,9 @@ class Player:
             self.vel.x = self.dash_dir[0] * self.dash_speed   # velocidad constante durante el impulso
         else:
             if self.on_ground:
-                accel = S.GROUND_ACCEL * level.grip
-                friction = S.GROUND_FRICTION * level.grip
+                grip = level.grip_under(self.rect)          # el hielo baja el agarre
+                accel = S.GROUND_ACCEL * grip
+                friction = S.GROUND_FRICTION * grip
             else:
                 accel, friction = S.AIR_ACCEL, S.AIR_DRAG
             if inp.move_x != 0 and not locked:
@@ -281,6 +283,8 @@ class Player:
         can_jump = not locked and not self.crouching
         if can_jump and self.jump_buffer > 0 and self.coyote > 0:
             self.vel.y = -S.JUMP_SPEED
+            self.vel.x += self.ride_vel[0]                 # momentum: conserva la velocidad de la plataforma
+            self.vel.y += self.ride_vel[1]
             self.jumping = True
             self.jump_buffer = self.coyote = 0.0
         if self.jumping and not inp.jump_held and self.vel.y < 0:

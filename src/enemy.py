@@ -110,7 +110,7 @@ class Walker:
             else:
                 self.facing = -self.facing
                 self.vel.x = 0.0
-        self.vel.x = move_toward(self.vel.x, self.facing * speed, S.WALKER_ACCEL * level.grip * self._dt)
+        self.vel.x = move_toward(self.vel.x, self.facing * speed, S.WALKER_ACCEL * level.grip_under(self.rect) * self._dt)
 
     def _think(self, player, level):
         ex, ey = self.center

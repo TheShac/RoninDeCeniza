@@ -19,6 +19,9 @@ RED = (190, 40, 40)
 GREY = (120, 120, 126)
 GREEN = (40, 150, 70)
 STEEL = (150, 154, 166)
+ICE = (178, 208, 226)
+ICE_LINE = (232, 244, 250)
+WOOD = (150, 118, 74)
 
 # --- Física del jugador ---
 GRAVITY = 2200.0          # px/s^2 (se puede cambiar por nivel)
@@ -126,6 +129,12 @@ SAW_OMEGA = 18.0             # rad/s (unas 2,9 vueltas por segundo)
 SAW_TEETH = 12
 SAW_PATH_SPEED = 90.0        # px/s por defecto cuando va y viene por un riel
 SAW_DAMAGE = 1               # corazones por contacto
+
+# --- Suelo de hielo y plataformas móviles ---
+ICE_GRIP = 0.10              # el agarre del suelo se multiplica por esto sobre hielo (poca aceleración y poco frenado)
+PLATFORM_H = 16              # px de alto de una plataforma móvil
+PLATFORM_SPEED = 70.0        # px/s por defecto de una plataforma lineal
+PLATFORM_OMEGA = 0.8         # rad/s por defecto de una plataforma circular (una vuelta cada 7,9 s)
 
 # --- Desvío (parry) ---
 PARRY_WINDOW = (0.05, 0.25)  # s del desvío durante los que la hoja devuelve proyectiles
